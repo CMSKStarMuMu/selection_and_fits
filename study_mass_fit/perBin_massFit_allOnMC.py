@@ -1,10 +1,10 @@
 import argparse
 parser = argparse.ArgumentParser(description="")
-# parser.add_argument("inputfile" , help = "Path to the input ROOT file")
-parser.add_argument("dimusel"   , help = "Define if keep or remove dimuon resonances. You can choose: keepPsiP, keepJpsi, rejectPsi, keepPsi")
-parser.add_argument("year"      , help = "choose among:2016,2017,2018", default = '2018')
+parser.add_argument("dimusel"    , help = "Define if keep or remove dimuon resonances", choices=['rejectPsi', 'keepJpsi', 'keepPsiP'])
+parser.add_argument("year"       , help = "choose among:2016,2017,2018", default = '2018')
+parser.add_argument("--mcw"      , help = "", action='store_true')
+parser.add_argument("--scaleErr" , help = "", action='store_true')
 args = parser.parse_args()
-
 
 '''
 code to fit the B0 mass distribution:
@@ -59,7 +59,7 @@ def _writeFitStatus(r):
     return txt
 
 def _writeChi2(chi2):
-    txt = ROOT.TLatex(.16,.8, "fit #chi^{2}: %.1f "%chi2 )
+    txt = ROOT.TLatex(.16,.8, "fit #chi^{2}/ndf: %.1f "%chi2 )
     txt . SetNDC() ;
     txt . SetTextSize(0.033) ;
     txt . SetTextFont(42)
@@ -88,6 +88,7 @@ nSigma_psiRej = 3.
 cut_base      = 'passB0Psi_lmnr == 1 '
 ## entries per bin in data
 n_bin = n_data[args.year]
+n_bin = 7.1112E5
 ## uncertainty on fRT
 fm_sigma = fM_sigmas[args.year]
 
@@ -112,11 +113,11 @@ chi2s    = OrderedDict()
   
 def fitMC(fulldata, correctTag, ibin):
 
-    print 'now fitting: ', ibin, ' for ', correctTag*'correctTag ', (1-correctTag)*'wrongTag'  
+    print 'now fitting: ', ibin, ' for ', correctTag*'correctTag ', (1-correctTag)*'misTag'  
     cut = cut_base + '&& (mumuMass*mumuMass > %s && mumuMass*mumuMass < %s)'%(q2binning[ibin], q2binning[ibin+1])
-    fulldata_v2        = fulldata.reduce(RooArgSet(thevarsMC), cut)
-
-    cut = 'rand < 100' ## valid for 2018
+    if ibin == 4:
+        cut  = cut_base + '&& (mumuMass*mumuMass > %s && mumuMass*mumuMass < %s) && xcut==0'%(q2binning[ibin], q2binning[ibin+1])
+    fulldata_v2 = fulldata.reduce(RooArgSet(thevarsMC), cut)
     data = fulldata_v2.reduce(RooArgSet(tagged_mass,mumuMass,mumuMassE), cut)
 
 
@@ -126,7 +127,6 @@ def fitMC(fulldata, correctTag, ibin):
     slope       = RooRealVar    ("slope"   , "slope"           ,   -4,   -10, 10);
     bkg_exp     = RooExponential("bkg_exp" , "exponential"     ,  slope,   tagged_mass  );
     fsig        = RooRealVar("fsig"         , "fsig"   ,   0.9, 0, 1)
-#     signalFunction = bkg_pol ### just a placeholder
 
     nsig        = RooRealVar("Yield"         , "nsig"   ,   500000,     0,    1E7)
     nbkg        = RooRealVar("nbkg"          , "nbkg"   ,     1000,     0,    1E6 )
@@ -177,7 +177,7 @@ def fitMC(fulldata, correctTag, ibin):
 
 #     fitFunction = RooAddPdf("fitfunction%s"%ibin, "fitfunction%s"%ibin , RooArgList(signalFunction, bkg_exp), RooArgList(fsig))
 
-    getattr(w,"import")(fitFunction)
+    getattr(w,"import")(signalFunction)
     
     r = fitFunction.fitTo(data, RooFit.Extended(doextended), RooFit.Save(), RooFit.Range(fitrange))
     print 'fit status: ', r.status(), r.covQual() 
@@ -193,7 +193,7 @@ def fitMC(fulldata, correctTag, ibin):
           break
     
     ## draw everything 
-    params = fitFunction.getParameters(RooArgSet(tagged_mass)) 
+    params = signalFunction.getParameters(RooArgSet(tagged_mass)) 
     w.saveSnapshot("reference_fit_%s_%s"%(tag, ibin),params,ROOT.kTRUE) 
     frame = tagged_mass.frame(RooFit.Range(fitrange))#, RooFit.Title('correctly'*correctTag + 'wrongly'*(1-correctTag) + ' tagged events'))
     data.plotOn(frame, RooFit.Binning(nbins), RooFit.MarkerSize(.7))
@@ -203,7 +203,7 @@ def fitMC(fulldata, correctTag, ibin):
     fitFunction.paramOn(frame,  RooFit.Layout(0.62,0.86,0.88))
 
     frame.Draw()
-    niceFrame(frame, 'correctly'*correctTag + 'wrongly'*(1-correctTag) + ' tagged events')
+    niceFrame(frame, 'correctly '*correctTag + 'mis'*(1-correctTag) + 'tagged events')
     frame. addObject(_writeFitStatus(r))
     
     ## evaluate sort of chi2 and save number of RT/WT events
@@ -211,16 +211,15 @@ def fitMC(fulldata, correctTag, ibin):
     flparams    = fitFunction.getParameters(observables)
     nparam      = int(flparams.selectByAttrib("Constant",ROOT.kFALSE).getSize())
     pdfstring = ''
-#     pdb.set_trace()
+
     if correctTag:
-        pdfstring = "doublecb_RT%s_Norm[tagged_mass]_Comp[doublecb_RT%s]_Range[datarange]_NormRange[datarange]"%(ibin,ibin)
 #         pdfstring = "doublegaus_RT%s_Norm[tagged_mass]_Comp[doublegaus_RT%s]_Range[mcrange]_NormRange[mcrange]"%(ibin,ibin)
+        pdfstring = "doublecb_RT%s_Norm[tagged_mass]_Comp[doublecb_RT%s]_Range[datarange]_NormRange[datarange]"%(ibin,ibin)
 #         pdfstring = "gauscb_RT%s_Norm[tagged_mass]_Comp[gauscb_RT%s]_Range[mcrange]_NormRange[mcrange]"%(ibin,ibin)
 #         pdfstring = "expGaussExp_RT%s_Norm[tagged_mass]_Comp[expGaussExp_RT%s]_Range[mcrange]_NormRange[mcrange]"%(ibin,ibin)
 
         if ibin == 7:   
             pdfstring = "gauscb_RT_%s_Norm[tagged_mass]_Comp[gauscb_RT_%s]_Range[datarange]_NormRange[datarange]"%(ibin,ibin)
-
         if doextended:
             dict_s_rt[ibin]   = _getFittedVar(nsig)
         else:
@@ -241,8 +240,6 @@ def fitMC(fulldata, correctTag, ibin):
         print 'setting nWT to ', dict_s_wt[ibin].n
         getattr(w,"import")(nWT)
     
-#     pdfstring = "fitfunction%s_Norm[tagged_mass]_Range[datarange]_NormRange[datarange]"%(ibin)  ## sara 04.11 to comment
-
     ## eval and save goodness of fit indicators
     chi2s['%s%s'%(tag,ibin)] = frame.chiSquare(pdfstring, "h_fullmc",  nparam)
     frame. addObject(_writeChi2( chi2s['%s%s'%(tag,ibin)] ))
@@ -280,7 +277,7 @@ def fitMC(fulldata, correctTag, ibin):
     ## save to pdf and root files
     for ilog in [False]:
         upperPad.SetLogy(ilog)
-        c1.SaveAs('fit_results_mass_checkOnMC/newbdt_puw/save_fit_mc_%s_%s_%s_newSigmaFRT%s%s_asInANv8.pdf'%(ibin, args.year, tag, '_logScale'*ilog, '_Jpsi'*(args.dimusel=='keepJpsi')))
+        c1.SaveAs('fit_results_mass_checkOnMC/fixBkg/save_fit_mc_%s_%s_%s_%s%s%s%s_xgbv4.pdf'%(ibin, args.year, tag, '_logScale'*ilog, '_Jpsi'*(args.dimusel=='keepJpsi'),'_MCw'*(args.mcw==True), '_scaleErr'*(args.scaleErr==True)))
     out_f.cd()
     r.Write('results_%s_%s'%(tag, ibin))
     
@@ -302,7 +299,7 @@ def fitData(fulldata, ibin, nRT_fromMC, nWT_fromMC):
 
     fraction = dict_s_wt[ibin] / (dict_s_rt[ibin] + dict_s_wt[ibin])
     print 'mistag fraction on MC for bin ', ibin , ' : ' , fraction.n , '+/-', fraction.s 
-    
+    return
     ### creating RT component
     w.loadSnapshot("reference_fit_RT_%s"%ibin)
     mean_rt      = w.var("mean_{RT}^{%s}"%ibin)
@@ -499,7 +496,7 @@ def fitData(fulldata, ibin, nRT_fromMC, nWT_fromMC):
 
     for ilog in [False]:
         upperPad.SetLogy(ilog)
-        c1.SaveAs('fit_results_mass_checkOnMC/newbdt_puw/save_fit_data_%s_%s_LMNR_newSigmaFRT_%s_asInANv8.pdf'%(ibin, args.year, '_logScale'*ilog))
+        c1.SaveAs('fit_results_mass_checkOnMC/newbdt_puw/save_fit_data_%s_%s_LMNR_newSigmaFRT_%s_printW_xgbv4.pdf'%(ibin, args.year, '_logScale'*ilog))
 
     out_f.cd()
     r.Write('results_data_%s'%(ibin))
@@ -515,20 +512,46 @@ def fitData(fulldata, ibin, nRT_fromMC, nWT_fromMC):
 tData = ROOT.TChain('ntuple')
 tMC = ROOT.TChain('ntuple')
 
+if args.mcw == False:
+    if args.dimusel == 'rejectPsi':
+        tData.Add('../final_ntuples/2018MC_LMNR_newphi_noIP2D_addxcutvariable.root')
+        tMC.Add('../final_ntuples/2018MC_LMNR_newphi_noIP2D_addxcutvariable.root')
+#         tData.Add('/gwdata/y/users/fiorendi/final_ntuples_p5prime_allyears/%sMC_LMNR_newphi_punzi_removeTkMu_fixBkg_B0Psicut_addxcutvariable.root'%args.year)
+#         tMC.Add('/gwdata/y/users/fiorendi/final_ntuples_p5prime_allyears/%sMC_LMNR_newphi_punzi_removeTkMu_fixBkg_B0Psicut_addxcutvariable.root'%args.year)
+    elif args.dimusel == 'keepJpsi':
+        tData.Add('/gwdata/y/users/fiorendi/final_ntuples_p5prime_allyears/%sMC_JPSI_newphi_punzi_removeTkMu_fixBkg_B0Psicut_addxcutvariable.root'%args.year)
+        tMC.Add('/gwdata/y/users/fiorendi/final_ntuples_p5prime_allyears/%sMC_JPSI_newphi_punzi_removeTkMu_fixBkg_B0Psicut_addxcutvariable.root'%args.year)
+    elif args.dimusel == 'keepPsiP':
+        tData.Add('/gwdata/y/users/fiorendi/final_ntuples_p5prime_allyears/%sMC_PSI_newphi_punzi_removeTkMu_fixBkg_B0Psicut_addxcutvariable.root'%args.year)
+        tMC.Add('/gwdata/y/users/fiorendi/final_ntuples_p5prime_allyears/%sMC_PSI_newphi_punzi_removeTkMu_fixBkg_B0Psicut_addxcutvariable.root'%args.year)
+
+elif args.mcw == True and args.scaleErr==True:
+    if args.dimusel == 'rejectPsi':
+        tData.Add('/gwpool/users/fiorendi/p5prime/miniAOD/CMSSW_10_2_14/src/miniB0KstarMuMu/miniKstarMuMu/selection_and_fits/bdt/withMCweights/scaledErrors/final_ntuples/%sMC_LMNR_v4_MCw_addxcutvariable.root'%args.year)
+        tMC.Add('/gwpool/users/fiorendi/p5prime/miniAOD/CMSSW_10_2_14/src/miniB0KstarMuMu/miniKstarMuMu/selection_and_fits/bdt/withMCweights/scaledErrors/final_ntuples/%sMC_LMNR_v4_MCw_addxcutvariable.root'%args.year)
+    elif args.dimusel == 'keepJpsi':
+        tData.Add('/gwpool/users/fiorendi/p5prime/miniAOD/CMSSW_10_2_14/src/miniB0KstarMuMu/miniKstarMuMu/selection_and_fits/bdt/withMCweights/scaledErrors/final_ntuples/%sMC_JPSI_v4_MCw_addxcutvariable.root'%args.year)
+        tMC.Add('/gwpool/users/fiorendi/p5prime/miniAOD/CMSSW_10_2_14/src/miniB0KstarMuMu/miniKstarMuMu/selection_and_fits/bdt/withMCweights/scaledErrors/final_ntuples/%sMC_JPSI_v4_MCw_addxcutvariable.root'%args.year)
+    elif args.dimusel == 'keepPsiP':
+        tData.Add('/gwpool/users/fiorendi/p5prime/miniAOD/CMSSW_10_2_14/src/miniB0KstarMuMu/miniKstarMuMu/selection_and_fits/bdt/withMCweights/scaledErrors/final_ntuples/%sMC_PSI_v4_MCw_addxcutvariable.root'%args.year)
+        tMC.Add('/gwpool/users/fiorendi/p5prime/miniAOD/CMSSW_10_2_14/src/miniB0KstarMuMu/miniKstarMuMu/selection_and_fits/bdt/withMCweights/scaledErrors/final_ntuples/%sMC_PSI_v4_MCw_addxcutvariable.root'%args.year)
+
+elif args.mcw == True and args.scaleErr==False:
+    if args.dimusel == 'rejectPsi':
+        tData.Add('/gwpool/users/fiorendi/p5prime/miniAOD/CMSSW_10_2_14/src/miniB0KstarMuMu/miniKstarMuMu/selection_and_fits/bdt/withMCweights/final_ntuples/%sMC_LMNR_withMCw_v2_addxcutvariable.root'%args.year)
+        tMC.Add('/gwpool/users/fiorendi/p5prime/miniAOD/CMSSW_10_2_14/src/miniB0KstarMuMu/miniKstarMuMu/selection_and_fits/bdt/withMCweights/final_ntuples/%sMC_LMNR_withMCw_v2_addxcutvariable.root'%args.year)
+    elif args.dimusel == 'keepJpsi':
+        tData.Add('/gwpool/users/fiorendi/p5prime/miniAOD/CMSSW_10_2_14/src/miniB0KstarMuMu/miniKstarMuMu/selection_and_fits/bdt/withMCweights/final_ntuples/%sMC_JPSI_withMCw_v2_addxcutvariable.root'%args.year)
+        tMC.Add('/gwpool/users/fiorendi/p5prime/miniAOD/CMSSW_10_2_14/src/miniB0KstarMuMu/miniKstarMuMu/selection_and_fits/bdt/withMCweights/final_ntuples/%sMC_JPSI_withMCw_v2_addxcutvariable.root'%args.year)
+    elif args.dimusel == 'keepPsiP':
+        tData.Add('/gwpool/users/fiorendi/p5prime/miniAOD/CMSSW_10_2_14/src/miniB0KstarMuMu/miniKstarMuMu/selection_and_fits/bdt/withMCweights/final_ntuples/%sMC_PSI_withMCw_v2_addxcutvariable.root'%args.year)
+        tMC.Add('/gwpool/users/fiorendi/p5prime/miniAOD/CMSSW_10_2_14/src/miniB0KstarMuMu/miniKstarMuMu/selection_and_fits/bdt/withMCweights/final_ntuples/%sMC_PSI_withMCw_v2_addxcutvariable.root'%args.year)
+
 if args.year == 'test':
+    tData = ROOT.TChain('ntuple')
+    tMC = ROOT.TChain('ntuple')
     tData.Add('/gwteray/users/fiorendi/final_ntuples_p5prime_allyears/2016Data_100k.root')
     tMC.Add('/gwteray/users/fiorendi/final_ntuples_p5prime_allyears/2016MC_LMNR_100k.root')
-else:    
-    if args.dimusel == 'rejectPsi':
-        tData.Add('/gwteray/users/fiorendi/final_ntuples_p5prime_allyears/newphi/newbdt/%sMC_LMNR.root'%args.year)
-        tMC.Add('/gwteray/users/fiorendi/final_ntuples_p5prime_allyears/newphi/newbdt/%sMC_LMNR.root'%args.year)
-#         tMC.Add('/eos/cms/store/user/fiorendi/p5prime/2016/skims/newphi/2016MC_LMNR.root')
-    elif args.dimusel == 'keepJpsi':
-        tData.Add('/gwteray/users/fiorendi/final_ntuples_p5prime_allyears/newphi/newbdt/%sMC_JPSI.root'%args.year)
-        tMC.Add('/gwteray/users/fiorendi/final_ntuples_p5prime_allyears/newphi/newbdt/%sMC_JPSI.root'%args.year)
-    elif args.dimusel == 'keepPsiP':
-        tData.Add('/gwteray/users/fiorendi/final_ntuples_p5prime_allyears/newphi/newbdt/%sMC_PSI.root'%args.year)
-        tMC.Add('/gwteray/users/fiorendi/final_ntuples_p5prime_allyears/newphi/newbdt/%sMC_PSI.root'%args.year)
 
 print 'mc file name:',  tMC.GetFile().GetName()
 print 'data file name:', tData.GetFile().GetName()
@@ -541,6 +564,9 @@ passB0Psi_lmnr  = RooRealVar("passB0Psi_lmnr" , "passB0Psi_lmnr", -200, 2);
 passB0Psi_jpsi  = RooRealVar("passB0Psi_jpsi" , "passB0Psi_jpsi", -200, 2);
 passB0Psi_psip  = RooRealVar("passB0Psi_psip" , "passB0Psi_psip", -200, 2);
 weight          = RooRealVar("weight" , "weight", 0,10);
+sf_to_data          = RooRealVar("sf_to_data" , "sf_to_data", 0,999999);
+
+xcut            = RooRealVar("xcut" , "xcut", -1, 5);
 
 tagged_mass.setRange("datarange", 5.0,5.6) ;
 # tagged_mass.setRange("datarange"  , 4.9,5.7) ;
@@ -554,22 +580,20 @@ thevars.add(passB0Psi_lmnr)
 thevars.add(passB0Psi_jpsi)
 thevars.add(passB0Psi_psip)
 thevars.add(weight)
+thevars.add(xcut)
+if args.mcw == True:
+  thevars.add(sf_to_data)
 
 fulldata   = RooDataSet('fulldata', 'fulldataset', tData,  RooArgSet(thevars), "weight")
+if args.mcw == True:
+  fulldata   = RooDataSet('fulldata', 'fulldataset', tData,  RooArgSet(thevars), "weight*sf_to_data")
+
 ## add to the data dataset a random variable, in order to scale it to desired stat
 nDataEntries = fulldata.sumEntries()
 randVar  = RooRealVar("rand","rand",0,1) 
 p0       = RooPolynomial("px","px",randVar) ;
 rDataset = p0.generate(RooArgSet(randVar),int(nDataEntries))
 fulldata.merge(rDataset) 
-
-## add to the input tree the combination of the variables, to be used for the cuts on the dimuon mass
-# deltaB0Mfunc = RooFormulaVar("deltaB0M", "deltaB0M", "@0 - @1", RooArgList(tagged_mass,B0Mass) )
-# deltaJMfunc  = RooFormulaVar("deltaJpsiM" , "deltaJpsiM" , "@0 - @1", RooArgList(mumuMass,JPsiMass) )
-# deltaPMfunc  = RooFormulaVar("deltaPsiPM" , "deltaPsiPM" , "@0 - @1", RooArgList(mumuMass,PsiPMass) )
-# deltaB0M     = fulldata.addColumn(deltaB0Mfunc) ;
-# deltaJpsiM   = fulldata.addColumn(deltaJMfunc) ;
-# deltaPsiPM   = fulldata.addColumn(deltaPMfunc) ;
 
 genSignal       = RooRealVar("genSignal"      , "genSignal"      , 0, 10);
 thevarsMC   = thevars; 
@@ -580,16 +604,11 @@ nMCEntries = fullmc.sumEntries()
 rDataset = p0.generate(RooArgSet(randVar),int(nMCEntries))
 fullmc.merge(rDataset) 
 thevarsMC.add(randVar)
-# deltaB0M    = fullmc.addColumn(deltaB0Mfunc) 
-# deltaJpsiM  = fullmc.addColumn(deltaJMfunc)  
-# deltaPsiPM  = fullmc.addColumn(deltaPMfunc)  
-# 
-# thevars.add(deltaB0M)
-# thevars.add(deltaJpsiM)
-# thevars.add(deltaPsiPM)
-# thevarsMC.add(deltaB0M)
-# thevarsMC.add(deltaJpsiM)
-# thevarsMC.add(deltaPsiPM)
+
+# nDesired = n_bin/nMCEntries
+# nev_cut = 'rand < %f'%nDesired
+# part_mc = fullmc.reduce(thevarsMC, nev_cut)
+
 
 ### define correct and wrong tag samples
 rt_mc       = fullmc.reduce(RooArgSet(thevarsMC), '((tagB0==1 && genSignal==1) || (tagB0==0 && genSignal==2))')
@@ -598,7 +617,7 @@ wt_mc       = fullmc.reduce(RooArgSet(thevarsMC), '((tagB0==0 && genSignal==1) |
 dict_s_rt  = {}
 dict_s_wt  = {}
 
-out_fname = "fit_results_mass_checkOnMC/newbdt_puw/results_fits_%s_fM%s_asInANv8.root"%(args.year, '_Jpsi'*(args.dimusel=='keepJpsi') + '_Psi'*(args.dimusel=='keepPsiP'))
+out_fname = "fit_results_mass_checkOnMC/fixBkg/results_fits_%s_fM%s%s%s_noIP2D_xgbv4.root"%(args.year, '_Jpsi'*(args.dimusel=='keepJpsi') + '_Psi'*(args.dimusel=='keepPsiP'), '_MCw'*(args.mcw==True), '_scaleErr'*(args.scaleErr==True))
 out_f = TFile (out_fname, "RECREATE") 
 w = ROOT.RooWorkspace("w")
 initial_n_1 =  3.
@@ -627,6 +646,7 @@ for ibin in range(len(q2binning)-1):
     if   ibin ==4:  cut_base = 'passB0Psi_jpsi== 1 '
     elif ibin ==6:  cut_base = 'passB0Psi_psip== 1 '
 
+#     if ibin !=3:  continue
     nRT_fromMC = fitMC(rt_mc, True, ibin)
     nWT_fromMC = fitMC(wt_mc, False, ibin)
 #     fitData(fulldata, ibin, nRT_fromMC, nWT_fromMC)
@@ -639,8 +659,8 @@ print 'bin\t\t fit status \t cov. matrix \t\t chi2'
 #     if i%3==0:  print '------------------------------------------------------'
 #     print k , '\t\t', fitStats[k], '\t\t', covStats[k], '\t\t', chi2s[k]
 # 
-# for i,k in enumerate(dict_s_rt.keys()):    
-#     print 'bin ' , i , '\t\t n rt events: ', dict_s_rt[k], '\t\t n wt events: ', dict_s_wt[k], '\t\t n tot events: ', dict_s_wt[k]+dict_s_rt[k]
+for i,k in enumerate(dict_s_rt.keys()):    
+    print 'bin ' , i , '\t\t n rt events: ', dict_s_rt[k], '\t\t n wt events: ', dict_s_wt[k], '\t\t n tot events: ', dict_s_wt[k]+dict_s_rt[k]
 
 out_f.Close()
 w.writeToFile(out_f.GetName(), False)
