@@ -1,8 +1,10 @@
 import argparse
 parser = argparse.ArgumentParser(description="")
-# parser.add_argument("inputfile" , help = "Path to the input ROOT file")
-parser.add_argument("dimusel"   , help = "Define if keep or remove dimuon resonances. You can choose: keepPsiP, keepJpsi, rejectPsi", choices=['rejectPsi', 'keepJpsi', 'keepPsiP'])
+parser.add_argument("dimusel"   , help = "Define if keep or remove dimuon resonances", choices=['rejectPsi', 'keepJpsi', 'keepPsiP'])
 parser.add_argument("year"      , help = "choose among:2016,2017,2018", default = '2018')
+parser.add_argument("--mcw"    , help = "", action='store_true')
+parser.add_argument("--scaleErr" , help = "", action='store_true')
+
 args = parser.parse_args()
 
 
@@ -126,37 +128,6 @@ def fitData(fulldata, ibin, w):
     fraction = nwt_mc / (nrt_mc + nwt_mc)
     print 'mistag fraction on MC for bin ', ibin , ' : ' , fraction.n , '+/-', fraction.s 
     
-    ### creating WT component
-    w.loadSnapshot("reference_fit_WT_%s"%ibin)
-    mean_wt      = w.var("mean_{WT}^{%s}"%ibin)
-    sigma_wt     = w.var("#sigma_{WT1}^{%s}"%ibin)
-    alpha_wt1    = w.var("#alpha_{WT1}^{%s}"%ibin)
-    alpha_wt2    = w.var("#alpha_{WT2}^{%s}"%ibin)
-    n_wt1        = w.var("n_{WT1}^{%s}"%ibin)
-    n_wt2        = w.var("n_{WT2}^{%s}"%ibin)
-    theWTgauss   = w.pdf("doublecb_%s"%ibin)   
-
-    n_wt1.setMin(0.01)  
-    n_wt2.setMin(0.01)  
-
-    c_mean_wt     = _constrainVar(mean_wt,  1)
-    c_sigma_wt    = _constrainVar(sigma_wt,  1)
-    c_alpha_wt1   = _constrainVar(alpha_wt1, 1)
-    c_alpha_wt2   = _constrainVar(alpha_wt2, 1)
-    c_n_wt1       = _constrainVar(n_wt1, 1)
-    c_n_wt2       = _constrainVar(n_wt2, 1)
-
-    c_pdfs_wt = RooArgSet(c_mean_wt, c_sigma_wt, c_alpha_wt1, c_alpha_wt2, c_n_wt1, c_n_wt2)
-    c_vars_wt = RooArgSet(  mean_wt,   sigma_wt,   alpha_wt1,   alpha_wt2,   n_wt1,   n_wt2)
-
-    constr_list_wt = RooArgList(c_pdfs_wt)
-    constr_list_wt.add(theWTgauss)
-    c_theWTgauss = RooProdPdf ("c_theWTgauss%s"%ibin, "c_theWTgauss", constr_list_wt)     
-
-    c_vars = RooArgSet()
-    c_vars.add(c_vars_wt);
-
-
     ### creating RT component
     w.loadSnapshot("reference_fit_RT_%s"%ibin)
     mean_rt      = w.var("mean_{RT}^{%s}"%ibin)
@@ -176,20 +147,6 @@ def fitData(fulldata, ibin, w):
     n_rt2     = RooRealVar()
     f1rt     = RooRealVar()
 
-    ### creating variable for the difference between the two peaks
-    # deltaPeaks = RooFormulaVar("deltaPeaks%s"%ibin, "@0 - @1", RooArgList(mean_rt, mean_wt))  
-    mRT_ufloat = ufloat(mean_rt.getVal(), mean_rt.getError())
-    mWT_ufloat = ufloat(mean_wt.getVal(), mean_wt.getError())
-    deltaPeakValue = mRT_ufloat - mWT_ufloat 
-    deltaPeakVar = RooRealVar("deltaPeakVar%s"%ibin, "deltaPeakVar%s"%ibin, deltaPeakValue.n, 0, 0.2)  
-
-    mRT_data = RooFormulaVar("mRT_data%s"%ibin, "@0 + @1", RooArgList(mean_wt , deltaPeakVar))  
-    ### creating constraints for the difference between the two peaks (not used)
-    c_deltaPeaks = RooGaussian("c_deltaPeaks%s"%ibin , "c_deltaPeaks", deltaPeakVar, ROOT.RooFit.RooConst( deltaPeakValue.n ), 
-                                ROOT.RooFit.RooConst( deltaPeakValue.s )  ## value to be checked
-                                ) 
-
-
     if ibin in range(0,4):
         alpha_rt2    = w.var("#alpha_{RT2}^{%s}"%ibin)
         c_alpha_rt2  = _constrainVar(alpha_rt2, 1)
@@ -198,7 +155,6 @@ def fitData(fulldata, ibin, w):
         n_rt2.setMin(0.01)  
         c_vars_rt = RooArgSet(  sigma_rt1,   alpha_rt1,   alpha_rt2,   n_rt1,   n_rt2)
         c_pdfs_rt = RooArgSet(c_sigma_rt1, c_alpha_rt1, c_alpha_rt2, c_n_rt1, c_n_rt2)
-        theRTgauss = ROOT.RooDoubleCBFast("doublecb_RT%s"%ibin, "doublecb", tagged_mass, mRT_data, sigma_rt1, alpha_rt1, n_rt1, alpha_rt2, n_rt2)	
         
     elif ibin in range(4,7):
         sigma_rt2    = w.var("#sigma_{RT2}^{%s}"%ibin)
@@ -213,11 +169,6 @@ def fitData(fulldata, ibin, w):
         c_vars_rt = RooArgSet(  sigma_rt1,   sigma_rt2,   alpha_rt1,   alpha_rt2,   n_rt1,   n_rt2,   f1rt)
         c_pdfs_rt = RooArgSet(c_sigma_rt1, c_sigma_rt2, c_alpha_rt1, c_alpha_rt2, c_n_rt1, c_n_rt2, c_f1rt)
 
-        cbshape1      = RooCBShape ("cbshape_RT1_%s"%(ibin), "cbshape_RT1_%s"%(ibin),  tagged_mass, mRT_data, sigma_rt1, alpha_rt1, n_rt1)
-        cbshape2      = RooCBShape ("cbshape_RT2_%s"%(ibin), "cbshape_RT2_%s"%(ibin),  tagged_mass, mRT_data, sigma_rt2, alpha_rt2, n_rt2)
-        theRTgauss =  RooAddPdf ("doublecb_RT%s"%ibin, "doublecb"  ,  RooArgList(cbshape1,cbshape2), RooArgList(f1rt))
-  
-
     elif ibin == 7:
         sigma_rt2    = w.var("#sigma_{RT2}^{%s}"%ibin)
         c_sigma_rt2  = _constrainVar(sigma_rt2, 1)
@@ -225,24 +176,60 @@ def fitData(fulldata, ibin, w):
         c_f1rt       = _constrainVar(f1rt, 1)
         c_pdfs_rt = RooArgSet(c_sigma_rt1, c_sigma_rt2, c_alpha_rt1, c_n_rt1, c_f1rt)
         c_vars_rt = RooArgSet(  sigma_rt1,   sigma_rt2,   alpha_rt1,   n_rt1,   f1rt)
-
-        cbshape1      = RooCBShape ("cbshape_RT1_%s"%(ibin), "cbshape_RT1_%s"%(ibin),  tagged_mass, mRT_data, sigma_rt1, alpha_rt1, n_rt1)
-#         singleG(mRT_data, sigma_rt2, tagged_mass, out_w, 'RT2' , ibin)
-        singlegaus   = RooGaussian("gaus_RT2_%s"%bin, "singlegaus", tagged_mass,  mRT_data, sigma_rt2)
-        theRTgauss =  RooAddPdf ("doublecb_RT%s"%ibin, "doublecb"  ,  RooArgList(cbshape1,singlegaus), RooArgList(f1rt))
-#         gausCB( out_w.pdf("cbshape_RT1_%s"%ibin) , out_w.pdf("gaus_RT2_%s"%ibin), f1rt, tagged_mass, out_w, 'RT', ibin )
-#         theRTgauss = out_w.pdf("gauscb_RT_%s"%ibin)   
  
   
-#     the_string = 'double' if ibin !=7 else 'gaus'
-#     theRTgauss  = w.pdf("%scb_RT%s%s"%(the_string,'_'*(ibin==7), ibin))   
+    the_string = 'double' if ibin !=7 else 'gaus'
+    theRTgauss  = w.pdf("%scb_RT%s%s"%(the_string,'_'*(ibin==7), ibin))   
 
-#     c_vars_rt.add(mRT_data) 
-#     c_pdfs_rt.add(c_deltaPeaks) 
     constr_list_rt = RooArgList(c_pdfs_rt)
     constr_list_rt.add(theRTgauss)
     c_theRTgauss = RooProdPdf ("c_theRTgauss%s"%ibin, "c_theRTgauss", constr_list_rt)    
+    c_vars = RooArgSet()
     c_vars.add(c_vars_rt);
+
+    ### creating WT component
+    w.loadSnapshot("reference_fit_WT_%s"%ibin)
+    mean_wt      = w.var("mean_{WT}^{%s}"%ibin)
+
+    ### creating variable for the difference between the two peaks
+    mRT_ufloat = ufloat(mean_rt.getVal(), mean_rt.getError())
+    mWT_ufloat = ufloat(mean_wt.getVal(), mean_wt.getError())
+    deltaPeakValue = mRT_ufloat - mWT_ufloat 
+    deltaPeakVar = RooRealVar("deltaPeakVar%s"%ibin, "deltaPeakVar%s"%ibin, deltaPeakValue.n, 0, 0.2)  
+    ### creating constraints for the difference between the two peaks (not used)
+    c_deltaPeaks = RooGaussian("c_deltaPeaks%s"%ibin , "c_deltaPeaks", deltaPeakVar, ROOT.RooFit.RooConst( deltaPeakValue.n ), 
+                                ROOT.RooFit.RooConst( deltaPeakValue.s )  ## value to be checked
+                                ) 
+
+    mWT_data = RooFormulaVar("mWT_data%s"%ibin, "@0 + @1", RooArgList(mean_rt, deltaPeakVar))  
+
+    sigma_wt     = w.var("#sigma_{WT1}^{%s}"%ibin)
+    alpha_wt1    = w.var("#alpha_{WT1}^{%s}"%ibin)
+    alpha_wt2    = w.var("#alpha_{WT2}^{%s}"%ibin)
+    n_wt1        = w.var("n_{WT1}^{%s}"%ibin)
+    n_wt2        = w.var("n_{WT2}^{%s}"%ibin)
+#     theWTgauss   = w.pdf("doublecb_%s"%ibin)   
+
+    n_wt1.setMin(0.01)  
+    n_wt2.setMin(0.01)  
+
+#     c_mean_wt     = _constrainVar(mean_wt,  1)
+    c_sigma_wt    = _constrainVar(sigma_wt,  1)
+    c_alpha_wt1   = _constrainVar(alpha_wt1, 1)
+    c_alpha_wt2   = _constrainVar(alpha_wt2, 1)
+    c_n_wt1       = _constrainVar(n_wt1, 1)
+    c_n_wt2       = _constrainVar(n_wt2, 1)
+
+    theWTgauss = ROOT.RooDoubleCBFast("doublecb_%s"%ibin, "doublecb_%s"%ibin, tagged_mass, mWT_data, sigma_wt, alpha_wt1, n_wt1, alpha_wt2, n_wt2)	
+    c_pdfs_wt = RooArgSet(c_sigma_wt, c_alpha_wt1, c_alpha_wt2, c_n_wt1, c_n_wt2, c_deltaPeaks)
+    c_vars_wt = RooArgSet(  sigma_wt,   alpha_wt1,   alpha_wt2,   n_wt1,   n_wt2, deltaPeakVar)
+#     c_pdfs_wt = RooArgSet(c_mean_wt, c_sigma_wt, c_alpha_wt1, c_alpha_wt2, c_n_wt1, c_n_wt2, c_deltaPeaks)
+#     c_vars_wt = RooArgSet(  mean_wt,   sigma_wt,   alpha_wt1,   alpha_wt2,   n_wt1,   n_wt2, deltaPeakVar)
+
+    constr_list_wt = RooArgList(c_pdfs_wt)
+    constr_list_wt.add(theWTgauss)
+    c_theWTgauss = RooProdPdf ("c_theWTgauss%s"%ibin, "c_theWTgauss", constr_list_wt)     
+    c_vars.add(c_vars_wt);
 
     fm              = RooRealVar ("f_{M}^{%s}"%ibin , "fm"             , fraction.n , 0, 1)
     signalFunction  = RooAddPdf  ("sumgaus%s"%ibin  , "rt+wt"           , RooArgList(c_theWTgauss,c_theRTgauss), RooArgList(fm))
@@ -259,9 +246,8 @@ def fitData(fulldata, ibin, w):
 
 
     ### now create background parametrization
-    slope         = RooRealVar    ("slope"      , "slope"           ,    -6,   -10, 10);
-#     slope         = RooRealVar    ("slope"      , "slope"           ,    0.5,   -10, 10);
-    bkg_exp       = RooExponential("bkg_exp"    , "exponential"     ,  slope,   tagged_mass  );
+    slope         = RooRealVar    ("slope_%s"%ibin, "slope"   ,    -6,   -10, 10);
+    bkg_exp       = RooExponential("bkg_exp_%s"%ibin, "exponential" ,  slope,   tagged_mass  );
     pol_c1        = RooRealVar    ("p1"         , "coeff x^0 term"  ,    0.5,   -10, 10);
     pol_c2        = RooRealVar    ("p2"         , "coeff x^1 term"  ,    0.5,   -10, 10);
     bkg_pol       = RooChebychev  ("bkg_pol"    , "2nd order pol"   ,  tagged_mass, RooArgList(pol_c1));
@@ -275,8 +261,6 @@ def fitData(fulldata, ibin, w):
       if args.year =='2017' or args.year =='2016':
         nsig          = RooRealVar("Yield"         , "signal frac"    ,      719000,     500000,   1E6);
         nbkg          = RooRealVar("nbkg"          , "bkg fraction"   ,      164000,     120000,   3E5);
-#         nsig          = RooRealVar("Yield"         , "signal frac"    ,      700000,     500000,   1E6);
-#         nbkg          = RooRealVar("nbkg"          , "bkg fraction"   ,      170000,     100000,   5E5);
     elif ibin == 6:
         nsig          = RooRealVar("Yield"         , "signal frac"    ,     100000,     0,   1E6);
         nbkg          = RooRealVar("nbkg"          , "bkg fraction"   ,      60000,     0,   1E6);
@@ -300,7 +284,7 @@ def fitData(fulldata, ibin, w):
                           ROOT.RooFit.Constrain(c_vars),
                           ROOT.RooFit.NumCPU(64)
                          )
-    print 'finished FINAL tmp fit ------------------------------------------------------------------------------'                     
+    print 'finished FINAL fit ------------------------------------------------------------------------------'                     
     print 'from fit: ', nsig.getVal() + nbkg.getVal()
     print 'data:', data.numEntries()
 
@@ -421,7 +405,7 @@ def fitData(fulldata, ibin, w):
 
     for ilog in [False]:
         upperPad.SetLogy(ilog)
-        c1.SaveAs('fit_results_mass/newbdt_puw/save_fit_data_%s_%s%s_fixBkg_deltaPeakConstr.pdf'%(ibin, args.year, '_logScale'*ilog))
+        c1.SaveAs('fit_results_mass/newbdt_puw/save_fit_data_%s_%s%s_deltaPeak%s%s_noIP2D_xgbv4.pdf'%(ibin, args.year, '_logScale'*ilog, '_MCw'*(args.mcw==True), '_scaleErr'*(args.scaleErr==True)))
 
 
     out_f.cd()
@@ -443,21 +427,40 @@ tData = ROOT.TChain('ntuple')
 if args.year == 'test':
     tData.Add('/gwteray/users/fiorendi/final_ntuples_p5prime_allyears/2016Data_100k.root')
     fname_mcresults = 'fit_results_mass_checkOnMC/results_fits_2016_newSigmaFRT_Jpsi.root'
-else:    
-    tData.Add('/gwdata/y/users/fiorendi/final_ntuples_p5prime_allyears/%sdata_newphi_punzi_removeTkMu_fixBkg_B0Psicut_addxcutvariable.root'%args.year)
 
-    fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM.root'%args.year
+elif args.mcw==True and args.scaleErr == False :
+    tData.Add('../bdt/withMCweights/final_ntuples/%sdata_withMCw_v2_addxcutvariable.root'%args.year)
+    fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_MCw.root'%args.year
+    if args.dimusel == 'keepJpsi':
+        fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_MCw_Jpsi.root'%args.year
+    elif args.dimusel == 'keepPsiP':
+        fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_MCw_Psi.root'%args.year
+
+elif args.mcw==True and args.scaleErr == True:
+    tData.Add('../bdt/withMCweights/scaledErrors/final_ntuples/%sdata_v4_MCw_addxcutvariable.root'%args.year)
+    fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/xgbv4/results_fits_%s_fM_MCw_scaleErr_noIP2D_xgbv4.root'%args.year
+    if args.dimusel == 'keepJpsi':
+        fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/xgbv4/results_fits_%s_fM_Jpsi_MCw_scaleErr_noIP2D_xgbv4.root'%args.year
+    elif args.dimusel == 'keepPsiP':
+        fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/xgbv4/results_fits_%s_fM_Jpsi_MCw_scaleErr_noIP2D_xgbv4.root'%args.year
+
+else:    
+    tData.Add('../final_ntuples/2018data_newphi_noIP2D_addxcutvariable.root')
+    fname_mcresults = 'fit_results_mass_checkOnMC/fixBkg/results_fits_2018_fM_noIP2D.root'
+#     tData.Add('/gwdata/y/users/fiorendi/final_ntuples_p5prime_allyears/%sdata_newphi_punzi_removeTkMu_fixBkg_B0Psicut_addxcutvariable.root'%args.year)
+#     fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM.root'%args.year
     if args.dimusel == 'keepJpsi':
         fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_Jpsi.root'%args.year
     elif args.dimusel == 'keepPsiP':
         fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_Psi.root'%args.year
+    
 
-
+# pdb.set_trace()
 fo = ROOT.TFile()
 try:
   fo = ROOT.TFile(fname_mcresults,'open')
 except:
-  print ('file %s or not found'%(fo))
+  print ('file %s not found'%(fo))
 w = fo.Get('w')
 
 tagged_mass  = w.var("tagged_mass")
@@ -485,7 +488,7 @@ thevars.add(xcut)
 
 
 fulldata   = RooDataSet('fulldata', 'fulldataset', tData,  RooArgSet(thevars))
-out_f = TFile ("results_data_fits_%s%s_fM_fixBkg_deltaPeakConstr.root"%(args.year, '_Jpsi'*(args.dimusel=='keepJpsi') + '_Psi'*(args.dimusel=='keepPsiP')),"RECREATE") 
+out_f = TFile ("results_data_fits_%s%s_fM_deltaPeak%s%s_noIP2D_xgbv4.root"%(args.year, '_Jpsi'*(args.dimusel=='keepJpsi') + '_Psi'*(args.dimusel=='keepPsiP'),'_MCw'*(args.mcw==True), '_scaleErr'*(args.scaleErr==True)),"RECREATE") 
 out_w = ROOT.RooWorkspace("data_w")
 
 for ibin in range(len(q2binning)-1):
