@@ -1,7 +1,7 @@
 import argparse
 parser = argparse.ArgumentParser(description="")
 parser.add_argument("year"      , help = "choose among:2016,2017,2018", default = '2018')
-parser.add_argument("--tag"      , help = "", default = 'punzi_removeTkMu_fixBkg')
+parser.add_argument("--tag"      , help = "", default = 'noIP2D')
 args = parser.parse_args()
 year = args.year
 
@@ -24,41 +24,39 @@ varName = 'bdt_prob'
 print 'BDT tag: ', tag
 
 if year == '2016':
-#     BDTCUT = 0.965 
-    BDTCUT = 0.99 ## 0.984 previous bdt  
+    BDTCUT = 0.99 
     if 'punzi_removeTkMu_fixBkg' in tag:
-        BDTCUT = 0.992 ## was 0.970  
+        BDTCUT = 0.992
+    elif 'noIP2D' in tag:
+        BDTCUT = 0.955
+
 elif year == '2017':
     if tag == 'punzi_noTkMu':
         BDTCUT = 0.97 ## wrong 0.94  
     elif 'punzi_removeTkMu_fixBkg' in tag:
         BDTCUT = 0.994 ## was 0.970  
-#     BDTCUT = 0.965  ## as in AN v2
+    elif 'noIP2D' in tag:
+        BDTCUT = 0.780 ## was 0.970  
+
 elif year == '2018':
     if tag == 'sign_yesTkMu':
         BDTCUT = 0.955  
     elif tag == 'sign_noTkMu':
-        BDTCUT = 0.960  ## update
+        BDTCUT = 0.960  
     elif tag == 'punzi_yesTkMu':
-        BDTCUT = 0.955   ## update
+        BDTCUT = 0.955  
     elif tag == 'punzi_noTkMu':
-        BDTCUT = 0.975 ## was 0.970  
+        BDTCUT = 0.975 
     elif tag == 'useMinMaxIP':
-        BDTCUT = 0.980 ## was 0.970  
+        BDTCUT = 0.980 
     elif 'punzi_removeTkMu_fixBkg' in tag:
-        BDTCUT = 0.990 ## was 0.970  
-#         BDTCUT = 0.992 ## was 0.970  
+        BDTCUT = 0.990 
+    elif 'noIP2D_noTrkSign' in tag:
+        BDTCUT = 0.80 
+    elif 'noIP2D' in tag:
+        BDTCUT = 0.80 
     varName = 'bdt_prob__' + tag.replace('no', 'remove')
         
-# if year == '2016':
-#     BDTCUT = 0.988  
-# if year == '2017':
-#     BDTCUT = 0.98  
-# if year == '2018':
-#     BDTCUT = 0.965  
-#     BDTCUT = 0.95 ## including higher mumuMass in the optimisation procedure  
-
-
 
 samples = [
            'data',
@@ -72,7 +70,9 @@ samples = [
 # #            'MC_BuJpsiK', 
 # #            'MC_LambdaB', 
 #            'data_sameSign', 
-#            'MC_HBJPSIX'
+#            'MC_HBJPSIX',
+#              'MC_B0ZC', ##2018
+#            'MC_otherb' 
           ]
 
 tkp_lv = TLorentzVector()
@@ -102,13 +102,17 @@ for str_file in samples:
         input_files = []
         print 'sample: ' , str_file, '  ', i 
         if 'data' not in str_file:
-            input_files.append('sub_samples/sample_%s_%s_%s_newphi_addBDT_punzi_removeTkMu_fixBkg_%s.root'%(args.year, str_file, str(i), args.year))        
+            ## no ip2D
+            input_files.append('sub_samples/sample_%s_%s_%s_add_vars_passPreselection_addBDT%s_%s.root'%(args.year, str_file, str(i), args.tag, args.year))        
+#             input_files.append('/gwdata/y/users/fiorendi/p5prime/data2018/flat_ntuples/Oct2020/otherb_fromKee_addBDT_punzi_removeTkMu_fixBkg_2018.root')
+            
         else:
-            input_files.append('sub_samples/sample_%s_%s_LMNR_%s_newphi_addBDT_punzi_removeTkMu_fixBkg_%s.root'%(args.year, str_file, str(i), args.year))  
-            input_files.append('sub_samples/sample_%s_%s_Charmonium_%s_newphi_addBDT_punzi_removeTkMu_fixBkg_%s.root'%(args.year, str_file, str(i), args.year))  
+            ## no ip2D
+            input_files.append('sub_samples/sample_%s_%s_LMNR_%s_add_vars_addBDT%s_%s.root'%(args.year, str_file, str(i), args.tag, args.year))  
+            input_files.append('sub_samples/sample_%s_%s_Charmonium_%s_add_vars_addBDT%s_%s.root'%(args.year, str_file, str(i), args.tag, args.year))  
         print input_files
 
-        ofile  = '../final_ntuples/%s%s_newphi_%s_fixPres_part%s.root'%(year, str_file, tag, i)
+        ofile  = '../final_ntuples/%s%s%s_passBDT_part%s.root'%(year, str_file, tag, i)
         print ofile
         isMC = False
         if 'MC' in str_file:
@@ -131,10 +135,6 @@ for str_file in samples:
         #         dataset = dataset_all[ (dataset_all.pass_preselectionTkMu == 1 ) & ( getattr(dataset_all, varName) > BDTCUT) ]
         
         print ('\t...passingBDT. n events: ', len(dataset))
-        
-        dataset['tagged_mass']  = dataset.tagB0*dataset.bMass   + (1- dataset.tagB0)*dataset.bBarMass
-        print ('added reco variables...')
-            
         
         dataset['mumTrkp'] = addMuTkMass(
                                      dataset.mumPt,      dataset.mumEta,      dataset.mumPhi,  
