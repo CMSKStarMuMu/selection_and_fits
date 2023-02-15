@@ -15,24 +15,21 @@ has to be run with the further script apply_pass_preselection_on_mc.py. The reas
 The 2 step process can be run using the ntuple_preparation_workflow.sh script.
 
 
-3. BDT training/testing/WP optimisation
-
-The optimisation of BDT hyper parameters is done with study_hp_optimisation/local_optimize_hp_punzi_2016.py and similar codes.
+3. BDT training/testing/WP optimisation  
+  - The optimisation of BDT hyper parameters is done with [study_hp_optimisation/local_optimize_hp_punzi_2016.py](https://github.com/CMSKStarMuMu/selection_and_fits/blob/master/bdt/study_hp_optimisation/local_optimize_hp_punzi_2016.py) and similar codes.
 They require additional packages and an updated xgb version.
-More detail will be added here.
-
-The bdt training is then performed using the final_bdt_sub_samples_noIP2D_2016.py scripts (and similar).
-The bdt score is added to the ntuples doing
+More detail will be added here.  
+  - The bdt training is then performed using the [final_bdt_sub_samples_noIP2D_2016.py](https://github.com/CMSKStarMuMu/selection_and_fits/blob/master/bdt/final_bdt_sub_samples_noIP2D_2016.py) scripts (and similar).
+  - The bdt score is added to the ntuples doing
 ```
-python add_bdt_subsample.py YEAR
+  python add_bdt_subsample.py YEAR
 ```
 
-Scripts to determine the working point are in the wp_optimization folder.
-
-wp_optimization/wp_optimization.py  (only needed when searching for the optimal bdt working point)  
-          |  
-wp_optimization/draw_wp_optimization.py  (only needed when searching for the optimal bdt working point)   
-          |  
+  - Scripts to determine the working point are in the wp_optimization folder.
+```
+  python wp_optimization.py YEAR
+  python draw_wp_optimization.py YEAR
+```
 
 4. Once you know the WP to use, apply the selection on the samples, add the B0Psi cut and additional variables, doing:
 ```
@@ -40,4 +37,4 @@ source selectionWorkflow.sh
 ```
 
 
-Please note that in each script there is a list defining which samples you would like to process, e.g. [here](https://github.com/CMSKStarMuMu/selection_and_fits/blob/master/bdt/add_bdt_subsamples.py#L23-L31), so you may wish to modify the list/add new samples there.
+Please note that in each script there is a list defining which samples you would like to process, e.g. [here](https://github.com/CMSKStarMuMu/selection_and_fits/blob/master/bdt/add_bdt_subsamples.py#L23-L37), so you may wish to modify the list/add new samples there.
