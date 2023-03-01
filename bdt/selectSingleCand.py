@@ -1,7 +1,7 @@
 import argparse
 parser = argparse.ArgumentParser(description="")
 parser.add_argument("year"      , help = "choose among:2016,2017,2018", default = '2018')
-parser.add_argument("--tag"      , help = "", default = 'noIP2D')
+parser.add_argument("--tag"      , help = "", default = '_noIP2D')
 args = parser.parse_args()
 year = args.year
 
