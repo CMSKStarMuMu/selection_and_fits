@@ -301,28 +301,20 @@ def fitMC(fulldata, correctTag, ibin):
 
 
 
-# tData = ROOT.TChain('ntuple')
 tMC = ROOT.TChain('ntuple')
 tFriend = ROOT.TChain('wTree')
 
 string_nonan = '' + ('_noNan' * (args.year == '2017'))
-
-if args.dimusel == 'rejectPsi':
-    tMC.Add('/eos/cms/store/group/phys_bphys/fiorendi/p5prime/ntuples/after_nominal_selection/%sMC_LMNR_noIP2D%s_addxcutvariable.root'%(args.year,string_nonan))
-    if args.mcw == True:
-        tFriend.Add('/eos/user/a/aboletti/BdToKstarMuMu/fileIndex/MC-LMNR-XGBv8/%s.root'%args.year)
-elif args.dimusel == 'keepJpsi':
-    tMC.Add('/eos/cms/store/group/phys_bphys/fiorendi/p5prime/ntuples/after_nominal_selection/%sMC_JPSI_noIP2D%s_addxcutvariable.root'%(args.year,string_nonan))
-    if args.mcw == True:
-        tFriend.Add('/eos/user/a/aboletti/BdToKstarMuMu/fileIndex/MC-Jpsi-XGBv8/%s.root'%args.year)
+string_channel = 'LMNR'
+if args.dimusel == 'keepJpsi':
+    string_channel = 'JPSI'
 elif args.dimusel == 'keepPsiP':
-    tMC.Add('/eos/cms/store/group/phys_bphys/fiorendi/p5prime/ntuples/after_nominal_selection/%sMC_PSI_noIP2D%s_addxcutvariable.root'%(args.year,string_nonan))
-    if args.mcw == True:
-        tFriend.Add('/eos/user/a/aboletti/BdToKstarMuMu/fileIndex/MC-Psi-XGBv8/%s.root'%args.year)
+    string_channel = 'PSI'
 
+tMC.Add('/eos/cms/store/group/phys_bphys/fiorendi/p5prime/ntuples/after_nominal_selection/MC_with_xgbv8_weights/%sMC_%s_noIP2D%s_addxcutvariable_withMCw.root'%(args.year,string_channel,string_nonan))
 if args.year == 'test':
-    tMC = ROOT.TChain('ntuple')
     tMC.Add('/gwteray/users/fiorendi/final_ntuples_p5prime_allyears/2016MC_LMNR_100k.root')
+
 
 print 'mc file name:',  tMC.GetFile().GetName()
 
@@ -333,10 +325,11 @@ tagB0           = RooRealVar("tagB0"       , "tagB0"    , 0, 2);
 passB0Psi_lmnr  = RooRealVar("passB0Psi_lmnr" , "passB0Psi_lmnr", -200, 2);
 passB0Psi_jpsi  = RooRealVar("passB0Psi_jpsi" , "passB0Psi_jpsi", -200, 2);
 passB0Psi_psip  = RooRealVar("passB0Psi_psip" , "passB0Psi_psip", -200, 2);
-weight          = RooRealVar("weight" , "weight", 0,10);
 sf_to_data      = RooRealVar("sf_to_data" , "sf_to_data", 0,999999);
 xcut            = RooRealVar("xcut" , "xcut", -1, 5);
-MCw             = RooRealVar("MCw" , "MCw", 0,999999);
+weight          = RooRealVar("weight" , "weight", 0,100);
+MCw             = RooRealVar("MCw" , "MCw", 0,100);
+tot_weight      = RooRealVar("tot_weight" , "tot_weight", 0,100);
 
 tagged_mass.setRange("datarange", 5.0,5.6) ;
 # tagged_mass.setRange("datarange"  , 4.9,5.7) ;
@@ -351,24 +344,39 @@ thevars.add(passB0Psi_jpsi)
 thevars.add(passB0Psi_psip)
 thevars.add(xcut)
 
-genSignal       = RooRealVar("genSignal"      , "genSignal"      , 0, 10);
-thevarsMC   = thevars; 
+genSignal = RooRealVar("genSignal"      , "genSignal"      , 0, 10);
+thevarsMC = thevars; 
 thevarsMC.add(genSignal)
 thevarsMC.add(weight)
+
 fullmc = RooDataSet()
 if args.mcw == False:
-  fullmc      = RooDataSet('fullmc', 'fullmc', tMC,  RooArgSet(thevarsMC), "", "weight")
+  fullmc = RooDataSet('fullmc', 'fullmc', tMC,  RooArgSet(thevarsMC), "", "weight")
 else:
   thevarsMC.add(MCw)
-  fullmc   = RooDataSet('fullmc', 'fullmc', tMC,  RooArgSet(thevarsMC), "", "weight*MCw")
+  thevarsMC.add(tot_weight)
+  fullmc = RooDataSet('fullmc', 'fullmc', tMC,  RooArgSet(thevarsMC), "", "tot_weight")
 
-
-# c10 = ROOT.TCanvas() 
-# MCw.setRange("mcwrange"  , -2,4) ;
-# wframe = MCw.frame(RooFit.Range("mcwrange"))
-# fullmc.plotOn(wframe)
-# wframe.Draw()
-# c10.SaveAs('weights.pdf')
+#   c10 = ROOT.TCanvas() 
+#   weight.setRange("mcwrange"  , 0,10) ;
+#   puwframe = weight.frame(RooFit.Range("mcwrange"))
+#   fullmc.plotOn(puwframe)
+#   puwframe.Draw()
+#   c10.SaveAs('puweights.pdf')
+# 
+#   c11 = ROOT.TCanvas() 
+#   MCw.setRange("mcwrange"  , 0,10) ;
+#   wframe = MCw.frame(RooFit.Range("mcwrange"))
+#   fullmc.plotOn(wframe)
+#   wframe.Draw()
+#   c11.SaveAs('weights.pdf')
+# 
+#   c11 = ROOT.TCanvas() 
+#   tot_weight.setRange("mcwrange"  , 0,10) ;
+#   totframe = tot_weight.frame(RooFit.Range("mcwrange"))
+#   fullmc.plotOn(totframe)
+#   totframe.Draw()
+#   c11.SaveAs('tot_weight.pdf')
 
 print 'RooDataSet created'
 nMCEntries = fullmc.numEntries()
