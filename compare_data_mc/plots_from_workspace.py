@@ -15,6 +15,7 @@ from ROOT import RooFit, RooStats, RooRealVar, RooDataSet, RooArgList, RooTreeDa
 from ROOT import RooGaussian, RooExponential, RooChebychev, TCanvas
 import os, sys, inspect
 from os import path
+ROOT.gROOT.SetBatch(True)
 
 q2binning = [
                 1,
@@ -51,7 +52,7 @@ elif '2016' in args.inputfile[0]:
   era = '2016B,2016H'
 #   era = '2016B,2016F'
 #   era = '2016G,2016H'
-pdb.set_trace()
+# pdb.set_trace()
 print ('using full dataset per year: %s '%era)  
 
 if era == '2016B,2016F':
@@ -97,7 +98,10 @@ fitFunction.plotOn(frame, RooFit.Components("signalGauss2"), RooFit.LineStyle(RO
 frame.GetXaxis().SetTitle('#mu^{+}#mu^{-}K^{+}#pi^{-} mass [GeV]')
 frame.SetTitle('sara')
 frame.Draw()
-writeCMS(frame, year, [q2binning[4], q2binning[5]], 0, yearString = year_string)
+if 'JPSI' in args.inputfile[0]:
+  writeCMS(frame, year, [q2binning[4], q2binning[5]], 0, yearString = year_string)
+elif 'PSI' in args.inputfile[0]:
+  writeCMS(frame, year, [q2binning[6], q2binning[7]], 0, yearString = year_string)
 niceFrame(frame, '')
 
 leg = ROOT.TLegend( 0.67, 0.75, 0.88,0.88, '','brNDC')

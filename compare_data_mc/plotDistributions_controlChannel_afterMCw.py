@@ -2,8 +2,8 @@ import argparse
 
 parser = argparse.ArgumentParser(description="")
 # parser.add_argument("inputfile" , help = "Path to the input ROOT file")
-parser.add_argument("-c", "--channel" , dest = "channel",  help = "Define if JPSI or LMNR or PsiPrime", default='Jpsi')
-parser.add_argument("-e", "--era"     , dest = "era"    ,  help = "Define BH, GH, BF"                 , default='BH')
+parser.add_argument("-c", "--channel" , dest = "channel", choices=['Jpsi', 'LMNR', 'Psi'], default='Jpsi')
+parser.add_argument("-e", "--era"     , dest = "era"    , help = "Define BH, GH, BF"                 , default='BH')
 parser.add_argument("-l", "--l1"      , dest = "l1"     , help = "L1 seed: l1_11_4, l1_12_5, l1_10_0, l1_00, l1_00_OS", default = 'all')
 parser.add_argument("-y", "--year"    , dest = "year"   , help = "year", default = '2018')
 
@@ -99,6 +99,14 @@ if args.channel=='Jpsi':
     psiselection = '((tagged_mass > 5 & tagged_mass < 5.6) && (mumuMass*mumuMass > 8.68 && mumuMass*mumuMass < 10.09) && pass_preselection == 1 && passB0Psi_jpsi == 1 && xcut == 0)'
     trig_index = 1
 
+elif args.channel=='Psi':
+
+    t0 .Add('../final_ntuples/for_splot/%sdata_noIP2D%s_addxcutvariable_passSPlotCuts_PsiP_mergeSweights.root'%(args.year, ''+'_noNan'*(args.year=='2017')))
+    t7 .Add('/eos/cms/store/group/phys_bphys/fiorendi/p5prime/ntuples/after_nominal_selection/MC_with_xgbv8_weights/%sMC_PSI_noIP2D%s_addxcutvariable_withMCw.root'%(args.year, ''+'_noNan'*(args.year=='2017')))
+
+    psiselection = '((tagged_mass > 5 & tagged_mass < 5.6) && (mumuMass*mumuMass > 12.86 && mumuMass*mumuMass < 14.18) && pass_preselection == 1 && passB0Psi_psip == 1)'
+    trig_index = 2
+
 print 'data', t0.GetName()  
 print 'MC', t7.GetName()  
 
@@ -129,23 +137,25 @@ toplot = [
 
     PlotContainer(var = 'bPt'                   , sel = selData, mcsel = selMC, xtitle = 'p_{T}(B^{0}) [GeV]'           , norm = True, nbins = 150 , xmin =  0            , xmax =  80  , fill = True, pltopt = 'HIST'),
     PlotContainer(var = 'bEta'                  , sel = selData, mcsel = selMC, xtitle = '#eta(B^{0})'                  , norm = True, nbins = 100 , xmin =  -2.5         , xmax =  2.5 , fill = True, pltopt = 'HIST'),
-    PlotContainer(var = 'bVtxCL'                , sel = selData, mcsel = selMC, xtitle = 'B^{0} vtx CL'                 , norm = True, nbins = 50  , xmin =  0            , xmax =  1   , fill = True, pltopt = 'HIST'),
-    PlotContainer(var = 'kstVtxCL'              , sel = selData, mcsel = selMC, xtitle = 'K* vtx CL'                    , norm = True, nbins = 50  , xmin =  0            , xmax =  1   , fill = True, pltopt = 'HIST'),
+#     PlotContainer(var = 'bVtxCL'                , sel = selData, mcsel = selMC, xtitle = 'B^{0} vtx CL'                 , norm = True, nbins = 50  , xmin =  0            , xmax =  1   , fill = True, pltopt = 'HIST'),
+#     PlotContainer(var = 'kstVtxCL'              , sel = selData, mcsel = selMC, xtitle = 'K* vtx CL'                    , norm = True, nbins = 50  , xmin =  0            , xmax =  1   , fill = True, pltopt = 'HIST'),
     PlotContainer(var = 'mu1Pt'                 , sel = selData, mcsel = selMC, xtitle = 'p_{T}(#mu_{1}) [GeV]'         , norm = True, nbins = 160 , xmin = pt_mu1_bins[0], xmax =  pt_mu1_bins[-1] , mybins = pt_mu1_bins, fill = True, pltopt = 'HIST', label = 'leadingMuPt' ),
     PlotContainer(var = 'mu2Pt'                 , sel = selData, mcsel = selMC, xtitle = 'p_{T}(#mu_{2}) [GeV]'         , norm = True, nbins = 160 , xmin = pt_mu2_bins[0], xmax =  pt_mu2_bins[-1] , mybins = pt_mu2_bins, fill = True, pltopt = 'HIST', label = 'trailingMuPt'),
     PlotContainer(var = 'kstTrk1Pt'             , sel = selData, mcsel = selMC, xtitle = 'leading trk p_{T} [GeV]'      , norm = True, nbins = 80  , xmin = pt_tk1_bins[0], xmax =  pt_tk1_bins[-1] , mybins = pt_tk1_bins,   fill = True, pltopt = 'HIST'),
     PlotContainer(var = 'kstTrk2Pt'             , sel = selData, mcsel = selMC, xtitle = 'trailing trk p_{T} [GeV]'     , norm = True, nbins = 80  , xmin = pt_tk2_bins[0], xmax =  pt_tk2_bins[-1] , mybins = pt_tk2_bins,   fill = True, pltopt = 'HIST'),
-    PlotContainer(var = 'mu1Eta'                , sel = selData, mcsel = selMC, xtitle = '#eta(#mu_{1})'                , norm = True, nbins = 100 , xmin =  -2.5        , xmax =  2.5 , fill = True, pltopt = 'HIST', label = 'leadingMuEta' ),
-    PlotContainer(var = 'mu2Eta'                , sel = selData, mcsel = selMC, xtitle = '#eta(#mu_{2})'                , norm = True, nbins = 100 , xmin =  -2.5        , xmax =  2.5 , fill = True, pltopt = 'HIST', label = 'trailingMuEta'),
-    PlotContainer(var = 'kstTrk1Eta'            , sel = selData, mcsel = selMC, xtitle = '#eta(tk_{1})'                 , norm = True, nbins = 100 , xmin =  -2.5        , xmax =  2.5 , fill = True, pltopt = 'HIST', label = 'leadingTkEta' ),
-    PlotContainer(var = 'kstTrk2Eta'            , sel = selData, mcsel = selMC, xtitle = '#eta(tk_{2})'                 , norm = True, nbins = 100 , xmin =  -2.5        , xmax =  2.5 , fill = True, pltopt = 'HIST', label = 'trailingTkEta'),
+#     PlotContainer(var = 'mu1Eta'                , sel = selData, mcsel = selMC, xtitle = '#eta(#mu_{1})'                , norm = True, nbins = 100 , xmin =  -2.5        , xmax =  2.5 , fill = True, pltopt = 'HIST', label = 'leadingMuEta' ),
+#     PlotContainer(var = 'mu2Eta'                , sel = selData, mcsel = selMC, xtitle = '#eta(#mu_{2})'                , norm = True, nbins = 100 , xmin =  -2.5        , xmax =  2.5 , fill = True, pltopt = 'HIST', label = 'trailingMuEta'),
+#     PlotContainer(var = 'kstTrk1Eta'            , sel = selData, mcsel = selMC, xtitle = '#eta(tk_{1})'                 , norm = True, nbins = 100 , xmin =  -2.5        , xmax =  2.5 , fill = True, pltopt = 'HIST', label = 'leadingTkEta' ),
+#     PlotContainer(var = 'kstTrk2Eta'            , sel = selData, mcsel = selMC, xtitle = '#eta(tk_{2})'                 , norm = True, nbins = 100 , xmin =  -2.5        , xmax =  2.5 , fill = True, pltopt = 'HIST', label = 'trailingTkEta'),
     PlotContainer(var = 'bCosAlphaBS'           , sel = selData, mcsel = selMC, xtitle = 'cos#theta_{BS}'               , norm = True, nbins = 100 , xmin = cos_bins[0]  , xmax = cos_bins[-1], mybins = cos_bins, fill = True, pltopt = 'HIST', logy = True, label = 'bCosThetaBS'),
-    PlotContainer(var = 'bLBS'                  , sel = selData, mcsel = selMC, xtitle = 'L_{BS} [cm]'                  , norm = True, nbins = 150 , xmin = L_bins[0]    , xmax = L_bins[-1]  , mybins = L_bins,   fill = True, pltopt = 'HIST'),
-    PlotContainer(var = 'bLBSE'                 , sel = selData, mcsel = selMC, xtitle = 'L_{BS} uncertainty [cm]'      , norm = True, nbins = 100 , xmin = LE_bins[0]   , xmax = LE_bins[-1] , mybins = LE_bins,  fill = True, pltopt = 'HIST'),
-    PlotContainer(var = 'bLBS/bLBSE'            , sel = selData, mcsel = selMC, xtitle = 'L_{BS}/#sigma_{L}'            , norm = True, nbins = 100 , xmin = LS_bins[0]   , xmax = LS_bins[-1] , mybins = LS_bins,  fill = True, pltopt = 'HIST', label = 'LSigmaBS'),
-    PlotContainer(var = 'bDCABS/bDCABSE'        , sel = selData, mcsel = selMC, xtitle = 'b DCA from BS significance'   , norm = True, nbins = 100 , xmin = DCA_bins[0]  , xmax = DCA_bins[-1], mybins = DCA_bins, fill = True, pltopt = 'HIST', label = 'bDCASign'),
-    PlotContainer(var = 'kstarmass'             , sel = selData, mcsel = selMC, xtitle = 'kstar mass [GeV]'             , norm = True, nbins = 60  , xmin =  0.7         , xmax =  1.1 , fill = True, pltopt = 'HIST', label = 'kstMass'),
-    PlotContainer(var = 'sum_isopt_04'          , sel = selData, mcsel = selMC, xtitle = 'B^{0} isolation'              , norm = True, nbins = 50  , xmin =  0           , xmax =  5   , fill = True, pltopt = 'HIST'),
+#     PlotContainer(var = 'bLBS'                  , sel = selData, mcsel = selMC, xtitle = 'L_{BS} [cm]'                  , norm = True, nbins = 150 , xmin = L_bins[0]    , xmax = L_bins[-1]  , mybins = L_bins,   fill = True, pltopt = 'HIST'),
+#     PlotContainer(var = 'bLBSE'                 , sel = selData, mcsel = selMC, xtitle = 'L_{BS} uncertainty [cm]'      , norm = True, nbins = 100 , xmin = LE_bins[0]   , xmax = LE_bins[-1] , mybins = LE_bins,  fill = True, pltopt = 'HIST'),
+#     PlotContainer(var = 'bLBS/bLBSE'            , sel = selData, mcsel = selMC, xtitle = 'L_{BS}/#sigma_{L}'            , norm = True, nbins = 100 , xmin = LS_bins[0]   , xmax = LS_bins[-1] , mybins = LS_bins,  fill = True, pltopt = 'HIST', label = 'LSigmaBS'),
+#     PlotContainer(var = 'bDCABS/bDCABSE'        , sel = selData, mcsel = selMC, xtitle = 'b DCA from BS significance'   , norm = True, nbins = 100 , xmin = DCA_bins[0]  , xmax = DCA_bins[-1], mybins = DCA_bins, fill = True, pltopt = 'HIST', label = 'bDCASign'),
+#     PlotContainer(var = 'kstarmass'             , sel = selData, mcsel = selMC, xtitle = 'kstar mass [GeV]'             , norm = True, nbins = 60  , xmin =  0.7         , xmax =  1.1 , fill = True, pltopt = 'HIST', label = 'kstMass'),
+#     PlotContainer(var = 'sum_isopt_04'          , sel = selData, mcsel = selMC, xtitle = 'B^{0} isolation'              , norm = True, nbins = 50  , xmin =  0           , xmax =  5   , fill = True, pltopt = 'HIST'),
+    PlotContainer(var = 'kstTrk1DCABS'          , sel = selData, mcsel = selMC, xtitle = 'leading trk DCA(BS) [cm]'     , norm = True, nbins = 80  , xmin =  -0.4        , xmax =  0.4            ,                    fill = True, pltopt = 'HIST'),
+    PlotContainer(var = 'kstTrk2DCABS'          , sel = selData, mcsel = selMC, xtitle = 'trailing trk DCA(BS) [cm]'    , norm = True, nbins = 80  , xmin =  -0.4         , xmax =  0.4            ,                    fill = True, pltopt = 'HIST'),
 #     PlotContainer(var = 'bdt_prob'              , sel = selData, mcsel = selMC, xtitle = 'bdt score'      , norm = True, nbins = 100 , xmin =  0 , xmax = 1 , fill = True, pltopt = 'HIST'),
     PlotContainer(var = 'cos_theta_k'           , sel = selData, mcsel = selMC, xtitle = 'cos#theta_{k}'   , norm = True, nbins = 100, xmin =  -1  , xmax =  1   , fill = True, pltopt = 'HIST'),
     PlotContainer(var = 'cos_theta_l'           , sel = selData, mcsel = selMC, xtitle = 'cos#theta_{l}'   , norm = True, nbins = 100, xmin =  -1  , xmax =  1   , fill = True, pltopt = 'HIST'),
@@ -166,10 +176,11 @@ def create_histo(name, nbins, xmin, xmax, mybins):
 ROOT.TH1.SetDefaultSumw2()
 if args.channel == 'LMNR':
     colorlist = [ROOT.kBlack, ROOT.kBlack, ROOT.kMagenta+2, ROOT.kBlue-3]
-if args.channel == 'Jpsi':
+elif args.channel == 'Jpsi':
 #     colorlist = [ROOT.kBlack, ROOT.kBlack, ROOT.kOrange-3, ROOT.kGreen+3]
     colorlist = [ROOT.kBlack, ROOT.kBlack, ROOT.kOrange-3, ROOT.kRed+2, ROOT.kMagenta+2, ROOT.kBlue-3, ROOT.kAzure+1, ROOT.kAzure+3] 
-#     colorlist = [ROOT.kBlack, ROOT.kBlack, ROOT.kGreen+2, ROOT.kGray+2, ROOT.kMagenta+2, ROOT.kBlue-3, ROOT.kAzure+1, ROOT.kAzure+3] 
+elif args.channel == 'Psi':
+    colorlist = [ROOT.kBlack, ROOT.kBlack, ROOT.kGreen-3, ROOT.kGreen+4, ROOT.kMagenta+2, ROOT.kBlue-3, ROOT.kAzure+1, ROOT.kAzure+3] 
 
 for i, iplot in enumerate(toplot):
     
@@ -196,6 +207,11 @@ for i, iplot in enumerate(toplot):
     list_to_draw[h_mc]    = 'B^{0}#rightarrow J/#psi K* MC'
 #     list_to_draw[h_data3] = 'B^{0}#rightarrow J/#psi K* data'
     list_to_draw[h_mc3]   = 'B^{0}#rightarrow J/#psi K* MC, xgbv8'
+
+    if args.channel == 'Psi':
+      list_to_draw[h_data]  = 'B^{0}#rightarrow #psi(2S) K* data'
+      list_to_draw[h_mc]    = 'B^{0}#rightarrow #psi(2S) K* MC'
+      list_to_draw[h_mc3]   = 'B^{0}#rightarrow #psi(2S) K* MC, xgbv8'
     
     xtitle = iplot.xtitle
     ytitle = 'a.u.' if iplot.norm else 'events'
@@ -285,7 +301,8 @@ for i, iplot in enumerate(toplot):
     rp_th1  = ROOT. TH1F("rp_th1","rp_th1",nbins,xmin,xmax)
     set_baseline_histo(rp_th1)
     if 'cos_theta' in var or 'phi'  in var:
-      rp_th1 .GetYaxis().SetTitle('MC/MCw');
+      rp_th1.GetYaxis().SetTitle('MC/MCw');
+      rp_th1.GetYaxis().SetRangeUser(0.4,1.6)
 
     lowerPad.cd()
     rp_th1. Draw("")

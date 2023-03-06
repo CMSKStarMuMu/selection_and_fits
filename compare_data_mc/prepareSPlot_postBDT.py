@@ -21,7 +21,7 @@ from ROOT import RooGaussian, RooExponential, RooChebychev, TCanvas
 import sys
 import math
 
-if save_workspace:
+if args.save_workspace:
   print ('will exit after saving the workspace!!!!!')  
 
 print ('FIXME: Need to manually set the desired era')  
@@ -179,6 +179,8 @@ pol_c1      = RooRealVar ("p1"           , "coeff x^0 term",    -1,   -10, 10);
 pol_c2      = RooRealVar ("p2"           , "coeff x^1 term",    0.2,   -10, 10);
 pol_c3      = RooRealVar ("p3"           , "coeff x^2 term",    0.,   -10, 10);
 bkg_pol     = RooChebychev("bkg_pol"     , "2nd order pol" ,  tagged_mass, RooArgList(pol_c1,pol_c2));
+if args.dimusel == 'keepPsiP':
+  bkg_pol     = RooChebychev("bkg_pol"     , "2nd order pol" ,  tagged_mass, RooArgList(pol_c1,pol_c2, pol_c3));
 slope         = RooRealVar    ("slope"   , "slope"           ,   -4,   -10, 10);
 bkg_exp       = RooExponential("bkg_exp" , "exponential"     ,  slope,   tagged_mass  );
 
@@ -215,7 +217,7 @@ c1.SaveAs('fit%sKstar_forSplot_%s_%s_%s_postBDT.pdf'%(('Jpsi'*(args.dimusel=='ke
                                                              era.split(',')[0],era.split(',')[1],
                                                              args.l1seed))
 
-if save_workspace:
+if args.save_workspace:
     out_fname = "out_workspace_%s_%s_%s_L1%s_postBDT.root"%(('JPSI'*(args.dimusel=='keepJpsi') + 'PSI'*(args.dimusel=='keepPsiP'), 
                                                                   era.split(',')[0],era.split(',')[1],args.l1seed))
     
