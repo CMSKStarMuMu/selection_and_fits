@@ -247,7 +247,7 @@ def fitData(fulldata, ibin, w):
 
     ### now create background parametrization
     slope         = RooRealVar    ("slope_%s"%ibin, "slope"   ,    -6,   -10, 10);
-    bkg_exp       = RooExponential("bkg_exp_%s"%ibin, "exponential" ,  slope,   tagged_mass  );
+    bkg_exp       = RooExponential("bkg_exp%s"%ibin, "exponential" ,  slope,   tagged_mass  );
     pol_c1        = RooRealVar    ("p1"         , "coeff x^0 term"  ,    0.5,   -10, 10);
     pol_c2        = RooRealVar    ("p2"         , "coeff x^1 term"  ,    0.5,   -10, 10);
     bkg_pol       = RooChebychev  ("bkg_pol"    , "2nd order pol"   ,  tagged_mass, RooArgList(pol_c1));
@@ -306,7 +306,8 @@ def fitData(fulldata, ibin, w):
     pdfstring = "fitfunction%s_Norm[tagged_mass]_Range[full]_NormRange[full]"%ibin
     chi2s['data%s'%ibin] = frame.chiSquare(pdfstring, "h_fulldata",  nparam)
     frame. addObject(_writeChi2( chi2s['data%s'%ibin] ))
-
+    
+#     pdb.set_trace()
     drawPdfComponents(fitFunction, frame, ROOT.kAzure, RooFit.NormRange("full"), RooFit.Range("full"), isData = True)
 #     fitFunction.paramOn(frame, RooFit.Layout(0.62,0.86,0.89))
 
@@ -388,7 +389,7 @@ def fitData(fulldata, ibin, w):
     leg.AddEntry(frame.findObject(extrastring_0+"_Comp[c_signalFunction%s]"%ibin+extrastring_1),  'total signal', 'l')
     leg.AddEntry(frame.findObject(extrastring_0+"_Comp[c_theRTgauss%s]"%ibin+extrastring_1),  'RT signal', 'l')
     leg.AddEntry(frame.findObject(extrastring_0+"_Comp[c_theWTgauss%s]"%ibin+extrastring_1),  'WT signal', 'l')
-    leg.AddEntry(frame.findObject(extrastring_0+"_Comp[bkg_exp]"+extrastring_1),       'combinatorial bkg', 'l')
+    leg.AddEntry(frame.findObject(extrastring_0+"_Comp[bkg_exp%s]"%ibin+extrastring_1),       'combinatorial bkg', 'l')
     frame.Draw()
     leg.Draw()
 
@@ -405,7 +406,7 @@ def fitData(fulldata, ibin, w):
 
     for ilog in [False]:
         upperPad.SetLogy(ilog)
-        c1.SaveAs('fit_results_mass/newbdt_puw/save_fit_data_%s_%s%s_deltaPeak%s%s_noIP2D_xgbv4.pdf'%(ibin, args.year, '_logScale'*ilog, '_MCw'*(args.mcw==True), '_scaleErr'*(args.scaleErr==True)))
+        c1.SaveAs('fit_results_mass/noIP2D/save_fit_data_%s_%s%s_deltaPeak%s%s_noIP2D.pdf'%(ibin, args.year, '_logScale'*ilog, '_MCw_xgbv8'*(args.mcw==True), '_scaleErr'*(args.scaleErr==True)))
 
 
     out_f.cd()
@@ -420,6 +421,7 @@ def fitData(fulldata, ibin, w):
 
 
 
+#     string filename_mc_mass = Form("/eos/cms/store/user/fiorendi/p5prime/massFits/noIP2D/xgbv8/results_fits_%i_fM%s_noIP2D_MCw_xgbv8.root",years[iy],channelStr.c_str());
 
 
 tData = ROOT.TChain('ntuple')
@@ -428,31 +430,47 @@ if args.year == 'test':
     tData.Add('/gwteray/users/fiorendi/final_ntuples_p5prime_allyears/2016Data_100k.root')
     fname_mcresults = 'fit_results_mass_checkOnMC/results_fits_2016_newSigmaFRT_Jpsi.root'
 
-elif args.mcw==True and args.scaleErr == False :
-    tData.Add('../bdt/withMCweights/final_ntuples/%sdata_withMCw_v2_addxcutvariable.root'%args.year)
-    fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_MCw.root'%args.year
-    if args.dimusel == 'keepJpsi':
-        fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_MCw_Jpsi.root'%args.year
-    elif args.dimusel == 'keepPsiP':
-        fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_MCw_Psi.root'%args.year
+string_nonan = '' + ('_noNan' * (args.year == '2017'))
+tData.Add('/eos/cms/store/group/phys_bphys/fiorendi/p5prime/ntuples/after_nominal_selection/%sdata_noIP2D%s_addxcutvariable.root'%(args.year,string_nonan))
 
-elif args.mcw==True and args.scaleErr == True:
-    tData.Add('../bdt/withMCweights/scaledErrors/final_ntuples/%sdata_v4_MCw_addxcutvariable.root'%args.year)
-    fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/xgbv4/results_fits_%s_fM_MCw_scaleErr_noIP2D_xgbv4.root'%args.year
-    if args.dimusel == 'keepJpsi':
-        fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/xgbv4/results_fits_%s_fM_Jpsi_MCw_scaleErr_noIP2D_xgbv4.root'%args.year
-    elif args.dimusel == 'keepPsiP':
-        fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/xgbv4/results_fits_%s_fM_Jpsi_MCw_scaleErr_noIP2D_xgbv4.root'%args.year
+string_channel = ''
+if args.dimusel == 'keepJpsi':
+    string_channel = '_Jpsi'
+elif args.dimusel == 'keepPsiP':
+    string_channel = '_Psi'
 
-else:    
-    tData.Add('../final_ntuples/2018data_newphi_noIP2D_addxcutvariable.root')
-    fname_mcresults = 'fit_results_mass_checkOnMC/fixBkg/results_fits_2018_fM_noIP2D.root'
-#     tData.Add('/gwdata/y/users/fiorendi/final_ntuples_p5prime_allyears/%sdata_newphi_punzi_removeTkMu_fixBkg_B0Psicut_addxcutvariable.root'%args.year)
-#     fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM.root'%args.year
-    if args.dimusel == 'keepJpsi':
-        fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_Jpsi.root'%args.year
-    elif args.dimusel == 'keepPsiP':
-        fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_Psi.root'%args.year
+fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/noIP2D/results_fits_%s_fM%s_noIP2D.root'%(args.year, string_channel)
+if args.mcw==True:
+    fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/noIP2D/xgbv8/results_fits_%s_fM%s_noIP2D_MCw_xgbv8.root'%(args.year, string_channel)
+
+# elif args.mcw==True and args.scaleErr == False :
+#     tData.Add('../bdt/withMCweights/final_ntuples/%sdata_withMCw_v2_addxcutvariable.root'%args.year)
+#     fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_MCw.root'%args.year
+#     if args.dimusel == 'keepJpsi':
+#         fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_MCw_Jpsi.root'%args.year
+#     elif args.dimusel == 'keepPsiP':
+#         fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_MCw_Psi.root'%args.year
+# 
+# elif args.mcw==True and args.scaleErr == True:
+#     tData.Add('../bdt/withMCweights/scaledErrors/final_ntuples/%sdata_v4_MCw_addxcutvariable.root'%args.year)
+#     fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/xgbv4/results_fits_%s_fM_MCw_scaleErr_noIP2D_xgbv4.root'%args.year
+#     if args.dimusel == 'keepJpsi':
+#         fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/xgbv4/results_fits_%s_fM_Jpsi_MCw_scaleErr_noIP2D_xgbv4.root'%args.year
+#     elif args.dimusel == 'keepPsiP':
+#         fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/xgbv4/results_fits_%s_fM_Jpsi_MCw_scaleErr_noIP2D_xgbv4.root'%args.year
+
+# else:    
+#     file_string = 'noIP2D_noTrkSign'
+#     if args.year == '2017': 
+#       file_string = 'noIP2D_noNan'
+#     tData.Add('../final_ntuples/%sdata_%s_addxcutvariable.root'%(args.year, file_string))
+#     fname_mcresults = 'MC_fit_results_mass/noIP2D/results_fits_%s_fM_%s.root'%(args.year,file_string)
+# #     tData.Add('/gwdata/y/users/fiorendi/final_ntuples_p5prime_allyears/%sdata_newphi_punzi_removeTkMu_fixBkg_B0Psicut_addxcutvariable.root'%args.year)
+# #     fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM.root'%args.year
+#     if args.dimusel == 'keepJpsi':
+#         fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_Jpsi_%s.root'%(args.year,file_string)
+#     elif args.dimusel == 'keepPsiP':
+#         fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_Psi_%s.root'%(args.year,file_string)
     
 
 # pdb.set_trace()
@@ -461,6 +479,7 @@ try:
   fo = ROOT.TFile(fname_mcresults,'open')
 except:
   print ('file %s not found'%(fo))
+  exit(0)
 w = fo.Get('w')
 
 tagged_mass  = w.var("tagged_mass")
@@ -488,7 +507,12 @@ thevars.add(xcut)
 
 
 fulldata   = RooDataSet('fulldata', 'fulldataset', tData,  RooArgSet(thevars))
-out_f = TFile ("results_data_fits_%s%s_fM_deltaPeak%s%s_noIP2D_xgbv4.root"%(args.year, '_Jpsi'*(args.dimusel=='keepJpsi') + '_Psi'*(args.dimusel=='keepPsiP'),'_MCw'*(args.mcw==True), '_scaleErr'*(args.scaleErr==True)),"RECREATE") 
+out_f = TFile ("fit_results_mass/noIP2D/results_data_fits_%s%s_fM_deltaPeak%s%s_noIP2D.root"%(args.year, \
+                                                                            '_Jpsi'*(args.dimusel=='keepJpsi') + '_Psi'*(args.dimusel=='keepPsiP'),\
+                                                                            '_MCw_xgbv8'*(args.mcw==True), \
+                                                                            '_scaleErr'*(args.scaleErr==True)\
+                                                                            ),
+                                                                            "RECREATE") 
 out_w = ROOT.RooWorkspace("data_w")
 
 for ibin in range(len(q2binning)-1):
