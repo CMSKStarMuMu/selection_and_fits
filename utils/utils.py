@@ -104,7 +104,7 @@ def applyB0PsiCut(dimusel, nSigma_psiRej, triangular=False):
 
 
 
-def writeCMS(frame, year, ibin = [-1,-1], toy=0):
+def writeCMS(frame, year, ibin = [-1,-1], toy=0, yearString = ''):
 
     txt = ROOT.TLatex(.11,.91,"CMS") 
     txt. SetNDC() 
@@ -112,9 +112,9 @@ def writeCMS(frame, year, ibin = [-1,-1], toy=0):
     frame.addObject(txt) 
     
     lumiYear = lumi_eras[str(year)]
-    if toy==0:     txt2 = ROOT.TLatex(.75,.91,"%.1f fb^{-1}, 13 TeV"%lumiYear) 
+    if toy==0:     txt2 = ROOT.TLatex(.65,.91,"%.1f fb^{-1}, 13 TeV%s"%(lumiYear,yearString)) 
     elif toy==1:   txt2 = ROOT.TLatex(.55,.91,"simulation, equivalent of %.1f fb^{-1}, 13 TeV"%lumiYear) 
-    elif toy==-1:  txt2 = ROOT.TLatex(.55,.93,"simulation, 13 TeV") 
+    elif toy==-1:  txt2 = ROOT.TLatex(.68,.91,"simulation, 13 TeV") 
     else:          txt2 = ROOT.TLatex(.55,.91,"simulation, equivalent of %.1f fb^{-1}, 13 TeV"%toy) 
     txt2 . SetNDC() ;
     txt2 . SetTextSize(0.03) ;

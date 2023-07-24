@@ -46,7 +46,7 @@ def tripleG(doublegaus, mean, sigma3_, f2_, tagged_mass, w):
 
 def crystalBall(mean, sigma_, alpha_, n_, tagged_mass, w, fn, bin, rangeAlpha):
 
-    sigmaCB      = RooRealVar ("#sigma_{%s}^{%s}"%(fn, bin)   , "sigmaCB_%s"%fn        ,  sigma_  ,     0,   1  )
+    sigmaCB      = RooRealVar ("#sigma_{%s}^{%s}"%(fn, bin)   , "sigmaCB_%s"%fn        ,  sigma_  ,     0,   1, "GeV"  )
     alpha        = RooRealVar ("#alpha_{%s}^{%s}"%(fn, bin)   , "#alpha_{%s}^{%s}"%(fn, bin) ,  alpha_  ,    rangeAlpha[0],  rangeAlpha[1] ) # was 0 - 5
     n            = RooRealVar ("n_{%s}^{%s}"%(fn, bin)        , "n_%s"%fn              ,  n_      ,      0.001,   200	 )
     cbshape      = RooCBShape ("cbshape_%s_%s"%(fn,bin)       , "cbshape_%s_%s"%(fn, bin)        ,  tagged_mass, mean, sigmaCB, alpha, n)
@@ -75,7 +75,7 @@ def doubleGausCB(cbshape, doublegaus, f3_, tagged_mass, w):
 
 def voigtian(mean, width_, sigma_, tagged_mass, w):
 
-    sigmaV      = RooRealVar ("#sigma_{V}"   , "sigmaV"        ,  sigma_  ,     0,   10 )
+    sigmaV      = RooRealVar ("#sigma_{V}"   , "sigmaV"        ,  sigma_  ,     0,   10 , "GeV")
     widthV      = RooRealVar ("widthV"       , "widthV"        ,  width_  ,     0,    5 )
     vgshape     = RooVoigtian ("vgshape"     , "vgshape"       ,  tagged_mass, mean, widthV, sigmaV)
     _import(w,vgshape)

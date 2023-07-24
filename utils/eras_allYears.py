@@ -11,21 +11,23 @@ eras['2016F'] = [ 277772, 278808 ]
 eras['2016G'] = [ 278820, 280385 ]
 eras['2016H'] = [ 280919, 284044 ]
 
-eras['APVL1'] = [ 272007, 277990 ]  
-eras['APV'  ] = [ 277991, 278801 ]
-eras['GOOD' ] = [ 278802, 284044 ]
+eras['APVL1' ] = [ 272007, 277990 ]  
+eras['APV'   ] = [ 277991, 278801 ]
+eras['ALLAPV'] = [ 272007, 278801 ]
+eras['GOOD'  ] = [ 278802, 284044 ]
 
 
-lumi_eras['2016B']  =  5.805
-lumi_eras['2016C']  =  2.615
-lumi_eras['2016D']  =  4.281
-lumi_eras['2016E']  =  4.035
-lumi_eras['2016F']  =  3.119
-lumi_eras['2016G']  =  7.658
-lumi_eras['2016H']  =  8.773
+lumi_eras['2016B']  =  5.893
+lumi_eras['2016C']  =  2.641
+lumi_eras['2016D']  =  4.325
+lumi_eras['2016E']  =  4.076
+lumi_eras['2016F']  =  3.151
+lumi_eras['2016G']  =  7.736
+lumi_eras['2016H']  =  8.864
 
 lumi_eras['APVL1']  = 16.741
 lumi_eras['APV'  ]  =  2.7
+lumi_eras['ALLAPV'] = lumi_eras['APVL1'] + lumi_eras['APV'  ]
 lumi_eras['GOOD' ]  = 16.831
 
 lumi_eras['2016']  =  lumi_eras['2016B'] + \
