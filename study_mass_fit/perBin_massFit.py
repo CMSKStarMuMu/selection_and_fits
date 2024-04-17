@@ -2,7 +2,7 @@ import argparse
 parser = argparse.ArgumentParser(description="")
 parser.add_argument("dimusel"   , help = "Define if keep or remove dimuon resonances", choices=['rejectPsi', 'keepJpsi', 'keepPsiP'])
 parser.add_argument("year"      , help = "choose among:2016,2017,2018", default = '2018')
-parser.add_argument("--mcw"    , help = "", action='store_true')
+parser.add_argument("--nomcw"     , help = "", action='store_true')
 parser.add_argument("--scaleErr" , help = "", action='store_true')
 
 args = parser.parse_args()
@@ -93,7 +93,7 @@ cut_base      = 'passB0Psi_lmnr == 1 '
 fm_sigma = fM_sigmas[args.year]
 
 q2binning = [
-                1,
+                1.1,
                 2, 
                 4.3,
                 6,
@@ -248,10 +248,20 @@ def fitData(fulldata, ibin, w):
     ### now create background parametrization
     slope         = RooRealVar    ("slope_%s"%ibin, "slope"   ,    -6,   -10, 10);
     bkg_exp       = RooExponential("bkg_exp%s"%ibin, "exponential" ,  slope,   tagged_mass  );
-    pol_c1        = RooRealVar    ("p1"         , "coeff x^0 term"  ,    0.5,   -10, 10);
-    pol_c2        = RooRealVar    ("p2"         , "coeff x^1 term"  ,    0.5,   -10, 10);
-    bkg_pol       = RooChebychev  ("bkg_pol"    , "2nd order pol"   ,  tagged_mass, RooArgList(pol_c1));
-   
+
+    pol_bmax =1.;
+    b0_bkg_mass =  RooRealVar("b0_bkg_mass-%s"%ibin , "b0_bkg_mass-%s"%ibin  ,  pol_bmax  );
+    b1_bkg_mass =  RooRealVar("b1_bkg_mass-%s"%ibin , "b1_bkg_mass-%s"%ibin  ,  0.1,  0., pol_bmax);
+    b2_bkg_mass =  RooRealVar("b2_bkg_mass-%s"%ibin , "b2_bkg_mass-%s"%ibin  ,  0.1,  0., pol_bmax);
+    b3_bkg_mass =  RooRealVar("b3_bkg_mass-%s"%ibin , "b3_bkg_mass-%s"%ibin  ,  0.0 );
+    b4_bkg_mass =  RooRealVar("b4_bkg_mass-%s"%ibin , "b4_bkg_mass-%s"%ibin  ,  0.1 , 0., pol_bmax);
+    b0_bkg_mass.setConstant(True);
+    b3_bkg_mass.setConstant(True);
+    bkg_pol =  ROOT.RooBernstein("bkg_pol%s"%ibin,"bkg_pol",  tagged_mass, RooArgList(b0_bkg_mass, b1_bkg_mass, b2_bkg_mass, b3_bkg_mass, b4_bkg_mass));
+
+    if (ibin == 3 or ibin == 5):
+      bkg_exp = createPdfCuts(ibin, args.year, tagged_mass, slope)
+    
     nsig          = RooRealVar("Yield"         , "signal yield"     ,     1000,     0,   1000000);
     nbkg          = RooRealVar("nbkg"          , "bkg fraction"     ,     1000,     0,   5500000);
     if ibin == 4 :
@@ -266,7 +276,10 @@ def fitData(fulldata, ibin, w):
         nbkg          = RooRealVar("nbkg"          , "bkg fraction"   ,      60000,     0,   1E6);
 
 
-    fitFunction  = RooAddPdf  ("fitfunction%s"%ibin   , "fitfunction%s"%ibin , RooArgList(c_signalFunction,bkg_exp), RooArgList(nsig,nbkg))
+    if ibin == 4:
+      fitFunction  = RooAddPdf  ("fitfunction%s"%ibin   , "fitfunction%s"%ibin , RooArgList(c_signalFunction,bkg_pol), RooArgList(nsig,nbkg))
+    else:
+      fitFunction  = RooAddPdf  ("fitfunction%s"%ibin   , "fitfunction%s"%ibin , RooArgList(c_signalFunction,bkg_exp), RooArgList(nsig,nbkg))
 #     fitFunction.fitTo(data, 
 #                           RooFit.Extended(True), 
 # #                           RooFit.Save(), 
@@ -307,7 +320,6 @@ def fitData(fulldata, ibin, w):
     chi2s['data%s'%ibin] = frame.chiSquare(pdfstring, "h_fulldata",  nparam)
     frame. addObject(_writeChi2( chi2s['data%s'%ibin] ))
     
-#     pdb.set_trace()
     drawPdfComponents(fitFunction, frame, ROOT.kAzure, RooFit.NormRange("full"), RooFit.Range("full"), isData = True)
 #     fitFunction.paramOn(frame, RooFit.Layout(0.62,0.86,0.89))
 
@@ -389,7 +401,10 @@ def fitData(fulldata, ibin, w):
     leg.AddEntry(frame.findObject(extrastring_0+"_Comp[c_signalFunction%s]"%ibin+extrastring_1),  'total signal', 'l')
     leg.AddEntry(frame.findObject(extrastring_0+"_Comp[c_theRTgauss%s]"%ibin+extrastring_1),  'RT signal', 'l')
     leg.AddEntry(frame.findObject(extrastring_0+"_Comp[c_theWTgauss%s]"%ibin+extrastring_1),  'WT signal', 'l')
-    leg.AddEntry(frame.findObject(extrastring_0+"_Comp[bkg_exp%s]"%ibin+extrastring_1),       'combinatorial bkg', 'l')
+    if ibin==4:
+      leg.AddEntry(frame.findObject(extrastring_0+"_Comp[bkg_pol%s]"%ibin+extrastring_1),       'combinatorial bkg', 'l')
+    else:
+      leg.AddEntry(frame.findObject(extrastring_0+"_Comp[bkg_exp%s]"%ibin+extrastring_1),       'combinatorial bkg', 'l')
     frame.Draw()
     leg.Draw()
 
@@ -406,7 +421,7 @@ def fitData(fulldata, ibin, w):
 
     for ilog in [False]:
         upperPad.SetLogy(ilog)
-        c1.SaveAs('fit_results_mass/noIP2D/save_fit_data_%s_%s%s_deltaPeak%s%s_noIP2D.pdf'%(ibin, args.year, '_logScale'*ilog, '_MCw_xgbv8'*(args.mcw==True), '_scaleErr'*(args.scaleErr==True)))
+        c1.SaveAs('fit_results_mass/noIP2D/save_fit_data_%s_%s%s_deltaPeak%s%s_noIP2D.pdf'%(ibin, args.year, '_logScale'*ilog, '_MCw_xgbv8'*(args.nomcw==False), '_scaleErr'*(args.scaleErr==True)))
 
 
     out_f.cd()
@@ -420,10 +435,6 @@ def fitData(fulldata, ibin, w):
 
 
 
-
-#     string filename_mc_mass = Form("/eos/cms/store/user/fiorendi/p5prime/massFits/noIP2D/xgbv8/results_fits_%i_fM%s_noIP2D_MCw_xgbv8.root",years[iy],channelStr.c_str());
-
-
 tData = ROOT.TChain('ntuple')
 
 if args.year == 'test':
@@ -431,7 +442,7 @@ if args.year == 'test':
     fname_mcresults = 'fit_results_mass_checkOnMC/results_fits_2016_newSigmaFRT_Jpsi.root'
 
 string_nonan = '' + ('_noNan' * (args.year == '2017'))
-tData.Add('/eos/cms/store/group/phys_bphys/fiorendi/p5prime/ntuples/after_nominal_selection/%sdata_noIP2D%s_addxcutvariable.root'%(args.year,string_nonan))
+tData.Add('/eos/cms/store/group/phys_bphys/fiorendi/p5prime/ntuples/after_nominal_selection/add_swap_cut_wp90/%sdata_noIP2D_addxcutvariable_addSwapMasses_addWP90cut.root'%args.year)
 
 string_channel = ''
 if args.dimusel == 'keepJpsi':
@@ -439,41 +450,11 @@ if args.dimusel == 'keepJpsi':
 elif args.dimusel == 'keepPsiP':
     string_channel = '_Psi'
 
-fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/noIP2D/results_fits_%s_fM%s_noIP2D.root'%(args.year, string_channel)
-if args.mcw==True:
-    fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/noIP2D/xgbv8/results_fits_%s_fM%s_noIP2D_MCw_xgbv8.root'%(args.year, string_channel)
+fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/noIP2D/xgbv8/results_fits_%s_fM%s_noIP2D_MCw_xgbv8.root'%(args.year, string_channel)
+if args.nomcw==True:
+    fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/noIP2D/results_fits_%s_fM%s_noIP2D.root'%(args.year, string_channel)
 
-# elif args.mcw==True and args.scaleErr == False :
-#     tData.Add('../bdt/withMCweights/final_ntuples/%sdata_withMCw_v2_addxcutvariable.root'%args.year)
-#     fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_MCw.root'%args.year
-#     if args.dimusel == 'keepJpsi':
-#         fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_MCw_Jpsi.root'%args.year
-#     elif args.dimusel == 'keepPsiP':
-#         fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_MCw_Psi.root'%args.year
-# 
-# elif args.mcw==True and args.scaleErr == True:
-#     tData.Add('../bdt/withMCweights/scaledErrors/final_ntuples/%sdata_v4_MCw_addxcutvariable.root'%args.year)
-#     fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/xgbv4/results_fits_%s_fM_MCw_scaleErr_noIP2D_xgbv4.root'%args.year
-#     if args.dimusel == 'keepJpsi':
-#         fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/xgbv4/results_fits_%s_fM_Jpsi_MCw_scaleErr_noIP2D_xgbv4.root'%args.year
-#     elif args.dimusel == 'keepPsiP':
-#         fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/xgbv4/results_fits_%s_fM_Jpsi_MCw_scaleErr_noIP2D_xgbv4.root'%args.year
 
-# else:    
-#     file_string = 'noIP2D_noTrkSign'
-#     if args.year == '2017': 
-#       file_string = 'noIP2D_noNan'
-#     tData.Add('../final_ntuples/%sdata_%s_addxcutvariable.root'%(args.year, file_string))
-#     fname_mcresults = 'MC_fit_results_mass/noIP2D/results_fits_%s_fM_%s.root'%(args.year,file_string)
-# #     tData.Add('/gwdata/y/users/fiorendi/final_ntuples_p5prime_allyears/%sdata_newphi_punzi_removeTkMu_fixBkg_B0Psicut_addxcutvariable.root'%args.year)
-# #     fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM.root'%args.year
-#     if args.dimusel == 'keepJpsi':
-#         fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_Jpsi_%s.root'%(args.year,file_string)
-#     elif args.dimusel == 'keepPsiP':
-#         fname_mcresults = '/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_%s_fM_Psi_%s.root'%(args.year,file_string)
-    
-
-# pdb.set_trace()
 fo = ROOT.TFile()
 try:
   fo = ROOT.TFile(fname_mcresults,'open')
@@ -509,7 +490,7 @@ thevars.add(xcut)
 fulldata   = RooDataSet('fulldata', 'fulldataset', tData,  RooArgSet(thevars))
 out_f = TFile ("fit_results_mass/noIP2D/results_data_fits_%s%s_fM_deltaPeak%s%s_noIP2D.root"%(args.year, \
                                                                             '_Jpsi'*(args.dimusel=='keepJpsi') + '_Psi'*(args.dimusel=='keepPsiP'),\
-                                                                            '_MCw_xgbv8'*(args.mcw==True), \
+                                                                            '_MCw_xgbv8'*(args.nomcw==False), \
                                                                             '_scaleErr'*(args.scaleErr==True)\
                                                                             ),
                                                                             "RECREATE") 

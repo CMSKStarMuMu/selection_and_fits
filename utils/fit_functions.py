@@ -2,12 +2,13 @@ import ROOT
 from ROOT import gSystem
 
 gSystem.Load('libRooFit')
-from ROOT import RooFit, RooRealVar, RooDataSet, RooArgList, RooTreeData, RooArgSet, RooAddPdf, RooFormulaVar
+from ROOT import RooFit, RooRealVar, RooDataSet, RooArgList, RooTreeData, RooArgSet, RooAddPdf, RooFormulaVar, RooGenericPdf
 from ROOT import RooGaussian, RooExponential, RooChebychev, RooProdPdf, RooCBShape, TFile, RooPolynomial, RooVoigtian, RooBreitWigner, RooFFTConvPdf
 from uncertainties import ufloat, umath
 
+from math import sqrt
 from .utils import *
-
+import pdb
 
 def _import(wsp, obj):
     getattr(wsp, 'import')(obj)
@@ -148,7 +149,8 @@ def drawPdfComponents(fitFunction, frame, base_color, normrange, range, isData =
     var = iter.Next();  color = 0
     list_to_plot      = ['fitfunction', 'c_theRTgauss', 'c_theWTgauss', 'bkg_exp', 'bkg_pol', 'cbshape_bs',
                          'c_signalFunction', 
-                         #'doublecb_', 'doublecb_RT', 'gauscb_RT_', 
+#                          'theRTgauss', 'theWTgauss',
+#                          'doublecb_', 'doublecb_RT', 'gauscb_RT_', 
                          #'cbshape_RT1_', 'cbshape_RT2_', 'gaus_RT2_', 
                          'bs_shape_kk', 'bs_shape_phi', 'bs_shape_kst', 'erf_pdf' ]
     list_to_plot_bins = ['%s%s'%(i,ibin) for i,ibin in product(list_to_plot,list(xrange(8)))]
@@ -166,6 +168,55 @@ def drawPdfComponents(fitFunction, frame, base_color, normrange, range, isData =
         color += 1
 
 
+
+def createPdfCuts(q2bin, year, var, slope):
+  if q2bin not in [3,5,7]:  
+    print ('warning: PdfCut not defined for bin', q2bin)
+    exit(0)
+
+  deltam = []
+  for i in range(4):
+    deltam.append(delta_m_per_bin[year][i])
+
+  print ('jpsi mass:', JPsiMass_)
+  resmass = [JPsiMass_, JPsiMass_, PsiPMass_, PsiPMass_]
+  binlow  = [sqrt(q2binning_base[3]), sqrt(q2binning_base[5]), sqrt(q2binning_base[5]), sqrt(q2binning_base[7])]
+  binhigh = [sqrt(q2binning_base[4]), sqrt(q2binning_base[6]), sqrt(q2binning_base[6]), sqrt(q2binning_base[8])]
+
+  m1 = []
+  m2 = []
+  m3 = []
+  m4 = []
+  formula = ["", "", "", ""]
+
+  for i in range(4):
+    m1.append(B0Mass_ - resmass[i] + binhigh[i] + deltam[i])
+    m2.append(B0Mass_ - resmass[i] + binlow[i]  + deltam[i])
+    m3.append(B0Mass_ - resmass[i] + binhigh[i] - deltam[i])
+    m4.append(B0Mass_ - resmass[i] + binlow[i]  - deltam[i])
+    formula[i] = formula[i] + " + (@0 < {M1})*(@0 > {M2})*(@0 - {M2})/{binsize}".format( M1 = m1[i],
+                                                                                         M2 = m2[i],
+                                                                                         binsize = binhigh[i]-binlow[i])
+    formula[i] = formula[i] + " + (@0 < {M3})*(@0 > {M4})*({M3} - @0)/{binsize}".format( M3 = m3[i],
+                                                                                         M4 = m4[i],
+                                                                                         binsize = binhigh[i]-binlow[i])
+  expression = ""
+
+  if q2bin==3:
+    expression = "(@0 < {M4})+(@0 > {M1})".format(M4 = m4[0], M1 = m1[0]) + formula[0]
+  elif q2bin==5:
+    expression = "(@0 < {M4_1})+(@0 > {M1_1})*(@0 < {M4_2})+(@0 > {M1_2})".format(M4_1 = m4[1], M1_1 = m1[1], M4_2 = m4[2], M1_2 = m1[2]) + formula[1] + formula[2]
+  elif q2bin==7:
+    expression = "(@0 <  {M4}) + (@0 > {M1})".format(M4 = m4[3], M1 = m1[3]) + formula[3]
+
+  expression = "(" + expression + ")*exp(@0*@1)"
+     
+  print "setting deltaM for Era = %s => %f, %f, %f, %f"%(year,deltam[0],deltam[1],deltam[2],deltam[3])
+  print "PdfCut expression defined for q2Bin=%i, year=%s as: \n %s"%(q2bin,year,expression)
+     
+  PdfCut = RooGenericPdf("bkg_exp%s"%(q2bin), "bkg_exp%s"%(q2bin), expression, RooArgList(var,slope))
+  PdfCut.Print()
+  return PdfCut
 
 
 ### maybe this can be used somehow

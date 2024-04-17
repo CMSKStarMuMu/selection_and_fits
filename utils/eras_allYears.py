@@ -11,11 +11,12 @@ eras['2016F'] = [ 277772, 278808 ]
 eras['2016G'] = [ 278820, 280385 ]
 eras['2016H'] = [ 280919, 284044 ]
 
-eras['APVL1' ] = [ 272007, 277990 ]  
-eras['APV'   ] = [ 277991, 278801 ]
-eras['ALLAPV'] = [ 272007, 278801 ]
-eras['GOOD'  ] = [ 278802, 284044 ]
+eras['2016APVL1' ] = [ 272007, 277990 ]  
+eras['2016APV'   ] = [ 277991, 278801 ]
+eras['2016ALLAPV'] = [ 272007, 278801 ]
+eras['2016GOOD'  ] = [ 278802, 284044 ]
 
+eras['2016'  ] = [ 272007, 284044 ]
 
 lumi_eras['2016B']  =  5.893
 lumi_eras['2016C']  =  2.641
@@ -25,10 +26,10 @@ lumi_eras['2016F']  =  3.151
 lumi_eras['2016G']  =  7.736
 lumi_eras['2016H']  =  8.864
 
-lumi_eras['APVL1']  = 16.741
-lumi_eras['APV'  ]  =  2.7
-lumi_eras['ALLAPV'] = lumi_eras['APVL1'] + lumi_eras['APV'  ]
-lumi_eras['GOOD' ]  = 16.831
+lumi_eras['2016APVL1']  = 16.741
+lumi_eras['2016APV'  ]  =  2.7
+lumi_eras['2016ALLAPV'] = lumi_eras['2016APVL1'] + lumi_eras['2016APV'  ]
+lumi_eras['2016GOOD' ]  = 16.831
 
 lumi_eras['2016']  =  lumi_eras['2016B'] + \
                       lumi_eras['2016C'] + \
@@ -45,10 +46,12 @@ run_eras[276831,277420] = '2016E'
 run_eras[277772,278808] = '2016F' 
 run_eras[278820,280385] = '2016G' 
 run_eras[280919,284044] = '2016H' 
+run_eras[272007,284044] = '2016' 
 
-run_eras[272007,277990] = 'APVL1' 
-run_eras[277991,278801] = 'APV' 
-run_eras[278802,284044] = 'GOOD' 
+run_eras[272007,277990] = '2016APVL1' 
+run_eras[277991,278801] = '2016APV' 
+run_eras[272007,278801] = '2016ALLAPV' 
+run_eras[278802,284044] = '2016GOOD' 
 
 ###################################################
 ## 2017
@@ -62,8 +65,10 @@ eras['2017F'] = [ 305040, 306462 ]
 eras['NODCDC'] = [ 299368, 304504 ]  ## starting from 2017C to exclude trigger & commissioning problems
 eras['DCDC'  ] = [ 304505, 306462 ]
 
-eras['2017D_normalFill'] = [ 302030, 302317 ]  
-eras['2017D_8b4e'      ] = [ 302318, 303434 ]  
+# eras['2017D_normalFill'] = [ 302030, 302317 ]  
+# eras['2017D_8b4e'] = [ 302318, 303434 ]  
+
+eras['2017'  ] = [ 297046, 306462 ]  
 
 lumi_eras['2017B']  =   4.942
 lumi_eras['2017C']  =   9.840
@@ -86,6 +91,7 @@ run_eras[299368,302029] = '2017C'
 run_eras[302030,303434] = '2017D' 
 run_eras[303824,304797] = '2017E' 
 run_eras[305040,306462] = '2017F' 
+run_eras[297046,306462] = '2017' 
 
 run_eras[299368,304504] = 'NODCDC' 
 run_eras[304505,306462] = 'DCDC' 
@@ -103,6 +109,7 @@ eras['2018A'] = [ 315252, 316995 ]
 eras['2018B'] = [ 317080, 319310 ]
 eras['2018C'] = [ 319337, 320065 ]
 eras['2018D'] = [ 320673, 325175 ]
+eras['2018' ] = [ 315252, 325175 ]
 
 lumi_eras['2018A']  =   14.741
 lumi_eras['2018B']  =   7.149
@@ -119,6 +126,7 @@ run_eras[315252,316995] = '2018A'
 run_eras[317080,319310] = '2018B' 
 run_eras[319337,320065] = '2018C' 
 run_eras[320673,325175] = '2018D' 
+run_eras[315252,325175] = '2018' 
 
 
 

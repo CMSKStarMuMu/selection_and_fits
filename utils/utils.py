@@ -24,6 +24,21 @@ n_data['2017'] = [307, 581, 495, 1013,  787149, 1524,  48372,  835]
 n_data['2018'] = [500, 981, 821, 1608, 1694952, 3018, 102424, 1836]
 n_data['test'] = [520, 1000, 850, 1900,  100000, 3166, 10000, 1860]
 
+delta_m_jpsi = {}
+delta_m_jpsi['2016'] = [0.2, 0.1, 0]
+delta_m_jpsi['2017'] = [0.19, 0.9, 0]
+delta_m_jpsi['2018'] = [0.19, 0.9, 0]
+
+delta_m_psi = {}
+delta_m_psi['2016'] = [0., 0.08, 0.11]
+delta_m_psi['2017'] = [0., 0.07, 0.08]
+delta_m_psi['2018'] = [0., 0.07, 0.08]
+
+delta_m_per_bin = {}
+delta_m_per_bin['2016'] = [0.20,0.10,0.08,0.11]
+delta_m_per_bin['2017'] = [0.19,0.09,0.07,0.08]
+delta_m_per_bin['2018'] = [0.19,0.09,0.07,0.08]
+
 # std::map<int,std::vector<float>> nbkg_years = {
 #   {2016, {162, 535, 462,  810, 0.005, 1342, 0.006, 467}},
 #   {2017, {185, 496, 441,  711, 0.004, 1363, 0.005, 379}},
@@ -59,18 +74,18 @@ fM_sigmas['test'] = [0.013, 0.010, 0.011, 0.007, 0.006  , 0.006, 0.006 , 0.007]
 # mc_scale['2018'] = 1.9
 
 
-# q2binning_base = [
-#                 1,
-#                 2, 
-#                 4.3,
-#                 6,
-#                 8.68,
-#                 10.09,
-#                 12.86,
-#                 14.18,
-#                 16,
+q2binning_base = [
+                1.1,
+                2, 
+                4.3,
+                6,
+                8.68,
+                10.09,
+                12.86,
+                14.18,
+                16,
 #                 19,
-# ]
+]
 
 
 def applyB0PsiCut(dimusel, nSigma_psiRej, triangular=False):
@@ -124,7 +139,7 @@ def writeCMS(frame, year, ibin = [-1,-1], toy=0, yearString = ''):
     if ibin[0] > -1:
         txtq = ROOT.TLatex(.16,.6, "%s GeV^{2} < q^{2} < %s GeV^{2}" %(ibin[0],ibin[1])) 
         txtq . SetNDC() ;
-        txtq . SetTextSize(0.036) ;
+        txtq . SetTextSize(0.034) ;
         txtq . SetTextFont(42) 
         frame. addObject(txtq) 
        
@@ -133,7 +148,7 @@ def niceFrame(frame, title):
     frame.GetYaxis().SetTitleOffset(1.35)
     frame.SetTitle(title)
     try:
-        frame.getAttText().SetTextSize(0.024) 
+        frame.getAttText().SetTextSize(0.022) 
         frame.getAttText().SetTextFont(42) 
         frame.getAttLine().SetLineColor(0) 
     except:
